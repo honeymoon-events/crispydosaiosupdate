@@ -1,4 +1,5 @@
-import api, { IMAGE_BASE_URL } from "../config/api";
+import api from "../config/api";
+import { IMAGE_BASE_URL } from "../config/baseURL";
 
 export const fetchCategories = async (userId) => {
   try {

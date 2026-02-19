@@ -13,6 +13,7 @@ import {
   Modal,
   Animated,
   Dimensions,
+  ScrollView,
 } from "react-native";
 import LinearGradient from "react-native-linear-gradient";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -119,101 +120,107 @@ export default function LoginScreen({ navigation }) {
       >
         <View style={styles.container}>
 
-          {/* TOP GREEN WAVE */}
+          {/* BACKGROUND WAVES (Z-INDEX BACK) */}
           <LinearGradient
             colors={["#1d8f52", "#27b36a", "#41d48a"]}
             style={styles.topWave}
           />
-
-          {/* LOGO */}
-          <View style={styles.logoWrap}>
-            <Image
-              source={require("../assets/logo.png")}
-              style={styles.logo}
-            />
-          </View>
-
-          {/* MAIN CARD AREA */}
-          <View style={styles.card}>
-            <Text style={styles.title}>Hello 👋</Text>
-            <Text style={styles.subtitle}>Sign in to your account</Text>
-
-            {/* Email / Mobile */}
-            <View style={styles.box}>
-              <Text style={styles.label}>Email or Mobile Number</Text>
-              <View style={styles.inputRow}>
-                <Ionicons name="person-outline" size={20} color="#1f4d35" />
-                <TextInput
-                  placeholder="Enter email or mobile number"
-                  placeholderTextColor="#88a796"
-                  autoCapitalize="none"
-                  keyboardType="default"
-                  value={email}
-                  onChangeText={setEmail}
-                  style={styles.input}
-                />
-              </View>
-
-              <Text style={styles.helperText}>
-                You can login using your Email or Mobile Number.
-              </Text>
-            </View>
-
-            {/* Password */}
-            <View style={styles.box}>
-              <Text style={styles.label}>Password</Text>
-              <View style={styles.inputRow}>
-                <Ionicons
-                  name="lock-closed-outline"
-                  size={20}
-                  color="#1f4d35"
-                />
-                <TextInput
-                  placeholder="Enter password"
-                  placeholderTextColor="#88a796"
-                  secureTextEntry
-                  value={password}
-                  onChangeText={setPassword}
-                  style={styles.input}
-                />
-              </View>
-
-              <TouchableOpacity style={styles.forgotBtn}>
-                <Text style={styles.forgotText}>Forgot Password?</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* LOGIN BUTTON */}
-            <TouchableOpacity style={styles.loginBtn} onPress={handleLogin}>
-              <LinearGradient
-                colors={["#1a8b50", "#21a863", "#34c87c"]}
-                style={styles.loginGradient}
-              >
-                {loading ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text style={styles.loginText}>Login</Text>
-                )}
-              </LinearGradient>
-            </TouchableOpacity>
-
-            {/* Signup Link */}
-            <Text style={styles.bottomText}>
-              Don’t have an account?{" "}
-              <Text
-                style={styles.signup}
-                onPress={() => navigation.navigate("Signup")}
-              >
-                Register Now
-              </Text>
-            </Text>
-          </View>
-
-          {/* BOTTOM GREEN WAVE */}
           <LinearGradient
             colors={["#1d8f52", "#27b36a", "#41d48a"]}
             style={styles.bottomWave}
           />
+
+          <ScrollView
+            contentContainerStyle={{ flexGrow: 1, paddingBottom: 120 }}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* LOGO */}
+            <View style={styles.logoWrap}>
+              <Image
+                source={require("../assets/logo.png")}
+                style={styles.logo}
+              />
+            </View>
+
+            {/* MAIN CARD AREA */}
+            <View style={styles.card}>
+              <Text style={styles.title}>Hello 👋</Text>
+              <Text style={styles.subtitle}>Sign in to your account</Text>
+
+              {/* Email / Mobile */}
+              <View style={styles.box}>
+                <Text style={styles.label}>Email or Mobile Number</Text>
+                <View style={styles.inputRow}>
+                  <Ionicons name="person-outline" size={20} color="#1f4d35" />
+                  <TextInput
+                    placeholder="Enter email or mobile number"
+                    placeholderTextColor="#88a796"
+                    autoCapitalize="none"
+                    keyboardType="default"
+                    value={email}
+                    onChangeText={setEmail}
+                    style={styles.input}
+                  />
+                </View>
+
+                <Text style={styles.helperText}>
+                  You can login using your Email or Mobile Number.
+                </Text>
+              </View>
+
+              {/* Password */}
+              <View style={styles.box}>
+                <Text style={styles.label}>Password</Text>
+                <View style={styles.inputRow}>
+                  <Ionicons
+                    name="lock-closed-outline"
+                    size={20}
+                    color="#1f4d35"
+                  />
+                  <TextInput
+                    placeholder="Enter password"
+                    placeholderTextColor="#88a796"
+                    secureTextEntry
+                    value={password}
+                    onChangeText={setPassword}
+                    style={styles.input}
+                  />
+                </View>
+
+                <TouchableOpacity style={styles.forgotBtn}>
+                  <Text style={styles.forgotText}>Forgot Password?</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* LOGIN BUTTON */}
+              <TouchableOpacity style={styles.loginBtn} onPress={handleLogin} activeOpacity={0.8}>
+                <LinearGradient
+                  colors={["#166534", "#15803d", "#22c55e"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.loginGradient}
+                >
+                  {loading ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.loginText}>Sign In</Text>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+
+              {/* Signup Link */}
+              <Text style={styles.bottomText}>
+                Don’t have an account?{" "}
+                <Text
+                  style={styles.signup}
+                  onPress={() => navigation.navigate("Signup")}
+                >
+                  Register Now
+                </Text>
+              </Text>
+            </View>
+          </ScrollView>
 
         </View>
       </KeyboardAvoidingView>
@@ -322,16 +329,15 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    flex: 1,
     paddingHorizontal: 28,
-    marginTop: 20,
+    marginTop: 10,
   },
 
   title: {
     fontSize: 32 * scale,
     fontWeight: "800",
     color: "#1f4d35",
-    fontFamily: "PoppinsBold",
+    fontFamily: "PoppinsSemiBold",
   },
 
   subtitle: {
@@ -384,20 +390,30 @@ const styles = StyleSheet.create({
     fontFamily: "PoppinsSemiBold",
   },
 
-  loginBtn: { marginTop: 14 },
+  loginBtn: {
+    marginTop: 30,
+    shadowColor: "#1a8b50",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.4,
+    shadowRadius: 15,
+    elevation: 10,
+  },
 
   loginGradient: {
-    paddingVertical: 16 * scale,
-    borderRadius: 14,
+    paddingHorizontal: 10,
+    borderRadius: 18,
     alignItems: "center",
-    minHeight: 50 * scale,
+    justifyContent: "center",
+    minHeight: 62 * scale,
   },
 
   loginText: {
     color: "#fff",
-    fontSize: 17 * scale,
-    fontWeight: "800",
-    fontFamily: "PoppinsBold",
+    fontSize: 22 * scale,
+    fontWeight: "900",
+    fontFamily: "PoppinsSemiBold",
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
   },
 
   bottomText: {
@@ -412,7 +428,7 @@ const styles = StyleSheet.create({
     color: "#1a8b50",
     fontWeight: "800",
     textDecorationLine: "underline",
-    fontFamily: "PoppinsBold",
+    fontFamily: "PoppinsSemiBold",
   },
 
   /* MODAL STYLES */
@@ -449,7 +465,7 @@ const styles = StyleSheet.create({
   },
   successTitle: {
     fontSize: 28 * (Dimensions.get("window").width / 400),
-    fontFamily: "PoppinsBold",
+    fontFamily: "PoppinsSemiBold",
     color: "#FFF",
     fontWeight: "900",
     marginBottom: 5,
@@ -471,7 +487,7 @@ const styles = StyleSheet.create({
   },
   successBadgeText: {
     fontSize: 10 * (Dimensions.get("window").width / 400),
-    fontFamily: "PoppinsBold",
+    fontFamily: "PoppinsSemiBold",
     color: "#15803d",
     letterSpacing: 1,
   },
@@ -514,7 +530,7 @@ const styles = StyleSheet.create({
   },
   alertTitleText: {
     fontSize: 22 * scale,
-    fontFamily: "PoppinsBold",
+    fontFamily: "PoppinsSemiBold",
     color: "#0F172A",
     fontWeight: "900",
     marginBottom: 10,
@@ -539,7 +555,7 @@ const styles = StyleSheet.create({
   },
   alertBtnText: {
     fontSize: 15 * scale,
-    fontFamily: "PoppinsBold",
+    fontFamily: "PoppinsSemiBold",
     color: "#FFF",
     fontWeight: "800",
   },
