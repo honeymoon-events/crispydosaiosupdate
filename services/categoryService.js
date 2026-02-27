@@ -11,7 +11,7 @@ export const fetchCategories = async (userId) => {
           id: cat.id,
           userId: cat.user_id,
           name: cat.name,
-          image: cat.image,
+          image: cat.image ? cat.image.replace("http://", "https://") : cat.image,
           sort_order: cat.sort_order
         }))
         .sort((a, b) => a.sort_order - b.sort_order);  // <--- IMPORTANT

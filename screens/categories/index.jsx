@@ -305,8 +305,7 @@ export default function Categories({ route, navigation }) {
     }
   });
 
-  const renderCategory = ({ item, index }) => {
-    const isEven = index % 2 === 0;
+  const renderCategory = ({ item }) => {
     return (
       <TouchableOpacity
         style={cardStyles.wideCard}
@@ -315,30 +314,25 @@ export default function Categories({ route, navigation }) {
           navigation.navigate("Products", { userId, categoryId: item.id })
         }
       >
-        <LinearGradient
-          colors={isEven ? ["#FFEDF2", "#FFDEE6"] : ["#ECFDF5", "#D1FAE5"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={cardStyles.cardGradient}
-        >
+        <View style={cardStyles.cardBody}>
           <View style={cardStyles.cardInfo}>
             <Text style={cardStyles.categoryName} numberOfLines={2}>{item?.name}</Text>
 
             <View style={[cardStyles.exploreBtn, { backgroundColor: '#FFFFFF' }]}>
-              <Text style={[cardStyles.exploreText, { color: isEven ? '#db2777' : '#059669' }]}>
+              <Text style={cardStyles.exploreText}>
                 EXPLORE MENU
               </Text>
               <Ionicons
                 name="arrow-forward"
                 size={12 * scale}
-                color={isEven ? '#db2777' : '#059669'}
+                color="#FF2B5C"
                 style={{ marginLeft: 6 }}
               />
             </View>
           </View>
 
           <View style={cardStyles.floatingImageContainer}>
-            <View style={[cardStyles.imageShadow, { shadowColor: isEven ? '#DB2777' : '#16a34a' }]}>
+            <View style={[cardStyles.imageShadow, { shadowColor: '#00000020' }]}>
               <Image
                 source={
                   item?.image
@@ -349,7 +343,7 @@ export default function Categories({ route, navigation }) {
               />
             </View>
           </View>
-        </LinearGradient>
+        </View>
       </TouchableOpacity>
     );
   };
@@ -949,21 +943,22 @@ const cardStyles = StyleSheet.create({
     marginBottom: 12,
     borderRadius: 20,
     backgroundColor: "#FFFFFF",
-    elevation: 6,
+    elevation: 4,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 10,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: '#F0F0F0',
   },
-  cardGradient: {
+  cardBody: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 16,
     justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
   },
   cardInfo: {
     flex: 1,
@@ -985,6 +980,9 @@ const cardStyles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 50,
+    backgroundColor: '#F8F8F8',
+    borderWidth: 1,
+    borderColor: '#EEEEEE',
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -995,6 +993,7 @@ const cardStyles = StyleSheet.create({
     fontSize: 11 * scale,
     fontFamily: "PoppinsBold",
     letterSpacing: 0.6,
+    color: "#FF2B5C",
   },
   floatingImageContainer: {
     position: 'relative',
@@ -1004,9 +1003,9 @@ const cardStyles = StyleSheet.create({
     width: 95 * scale,
     height: 95 * scale,
     borderRadius: 15 * scale,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F9FAFB',
     padding: 2,
-    elevation: 4,
+    elevation: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,

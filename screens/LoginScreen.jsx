@@ -28,10 +28,6 @@ export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [successVisible, setSuccessVisible] = useState(false);
-  const [fullName, setFullName] = useState("");
-  const scaleAnim = React.useRef(new Animated.Value(0)).current;
-
   // Premium Alert State
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState("");
@@ -50,6 +46,11 @@ export default function LoginScreen({ navigation }) {
       friction: 8,
       useNativeDriver: true,
     }).start();
+
+    // Auto dismiss for success/error
+    if (type === "success" || type === "error") {
+      setTimeout(() => hidePremiumAlert(), 2500);
+    }
   };
 
   const hidePremiumAlert = () => {
@@ -90,18 +91,9 @@ export default function LoginScreen({ navigation }) {
       /* ======================= */
 
 
-      setFullName(user.full_name);
-      setSuccessVisible(true);
-
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        tension: 50,
-        friction: 7,
-        useNativeDriver: true,
-      }).start();
+      showPremiumAlert("Logged In!", `Welcome back, ${user.full_name}!`, "success");
 
       setTimeout(() => {
-        setSuccessVisible(false);
         navigation.replace("Resturent");
       }, 2500);
 
@@ -225,64 +217,27 @@ export default function LoginScreen({ navigation }) {
         </View>
       </KeyboardAvoidingView>
 
-      {/* PREMIUM SUCCESS MODAL */}
-      <Modal
-        visible={successVisible}
-        transparent
-        animationType="fade"
-      >
-        <View style={styles.modalOverlay}>
-          <Animated.View style={[
-            styles.successCard,
-            { transform: [{ scale: scaleAnim }] }
-          ]}>
-            <LinearGradient
-              colors={["#16a34a", "#15803d"]}
-              style={styles.successGradient}
-            >
-              <View style={styles.checkRing}>
-                <Ionicons name="checkmark" size={50 * scale} color="#FFF" />
-              </View>
-
-              <Text style={styles.successTitle}>Logged In!</Text>
-              <Text style={styles.successMsg}>
-                Welcome back, {fullName}!
-              </Text>
-
-              <Text style={styles.enjoyText}>
-                Enjoy ordering your favorite meals 😋
-              </Text>
-            </LinearGradient>
-          </Animated.View>
-        </View>
-      </Modal>
-
-      {/* PREMIUM ALERT MODAL */}
+      {/* UNIFIED PREMIUM MODAL (Success / Error / Info) */}
       <Modal visible={alertVisible} transparent animationType="fade">
         <View style={styles.alertOverlay}>
           <Animated.View style={[styles.alertCard, { transform: [{ scale: alertScale }] }]}>
-            <LinearGradient
-              colors={alertType === 'error' ? ["#FFF5F5", "#FFFFFF"] : ["#F0FDF4", "#FFFFFF"]}
-              style={styles.alertContent}
-            >
-              <View style={[styles.alertIconRing, { backgroundColor: alertType === 'error' ? '#FEE2E2' : '#DCFCE7' }]}>
+            <View style={styles.alertContent}>
+              <View style={[
+                styles.alertIconRing,
+                { backgroundColor: alertType === 'error' ? '#FEF2F2' : alertType === 'success' ? '#F0FDF4' : '#F0F9FF' }
+              ]}>
                 <Ionicons
-                  name={alertType === 'error' ? "close-circle" : "information-circle"}
-                  size={40}
-                  color={alertType === 'error' ? "#EF4444" : "#16A34A"}
+                  name={alertType === 'error' ? "close" : alertType === 'success' ? "checkmark" : "information"}
+                  size={46 * scale}
+                  color={alertType === 'error' ? "#EF4444" : alertType === 'success' ? "#16A34A" : "#0EA5E9"}
                 />
               </View>
               <Text style={styles.alertTitleText}>{alertTitle}</Text>
               <Text style={styles.alertMsgText}>{alertMsg}</Text>
-              <TouchableOpacity style={styles.alertBtn} onPress={hidePremiumAlert}>
-                <LinearGradient
-                  colors={alertType === 'error' ? ["#EF4444", "#DC2626"] : ["#16A34A", "#15803D"]}
-                  style={styles.alertBtnGrad}
-                >
-                  <Text style={styles.alertBtnText}>Ok</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </LinearGradient>
+              {alertType === 'success' && (
+                <Text style={styles.alertSubText}>Enjoy ordering your favorite meals 😋</Text>
+              )}
+            </View>
           </Animated.View>
         </View>
       </Modal>
@@ -434,129 +389,127 @@ const styles = StyleSheet.create({
   /* MODAL STYLES */
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.7)",
+    backgroundColor: "rgba(0,0,0,0.65)",
     justifyContent: "center",
     alignItems: "center",
   },
-  successCard: {
-    width: "85%",
-    borderRadius: 30,
-    overflow: "hidden",
-    elevation: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-  },
-  successGradient: {
-    padding: 30,
+
+  successContent: {
+    paddingVertical: 45,
+    paddingHorizontal: 30,
+    backgroundColor: "#FFFFFF",
     alignItems: "center",
+    justifyContent: "center",
   },
-  checkRing: {
-    width: 90 * (Dimensions.get("window").width / 400),
-    height: 90 * (Dimensions.get("window").width / 400),
-    borderRadius: 45 * (Dimensions.get("window").width / 400),
-    backgroundColor: "rgba(255,255,255,0.2)",
+  successIconRing: {
+    width: 86 * scale,
+    height: 86 * scale,
+    borderRadius: 43 * scale,
+    backgroundColor: "#F0FDF4",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 20,
-    borderWidth: 3,
-    borderColor: "rgba(255,255,255,0.5)",
+    marginBottom: 24,
+    borderWidth: 1.5,
+    borderColor: "#DCFCE7",
   },
-  successTitle: {
-    fontSize: 28 * (Dimensions.get("window").width / 400),
+  successTitleText: {
+    fontSize: 26 * scale,
     fontFamily: "PoppinsSemiBold",
-    color: "#FFF",
+    color: "#1E293B",
     fontWeight: "900",
-    marginBottom: 5,
-  },
-  successMsg: {
-    fontSize: 18 * (Dimensions.get("window").width / 400),
-    fontFamily: "PoppinsSemiBold",
-    color: "#FFF",
+    marginBottom: 12,
     textAlign: "center",
-    opacity: 0.9,
-    marginBottom: 15,
   },
-  successBadge: {
-    backgroundColor: "#FFD700",
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 20,
-    marginBottom: 20,
+  successTextWrap: {
+    alignItems: "center",
   },
-  successBadgeText: {
-    fontSize: 10 * (Dimensions.get("window").width / 400),
-    fontFamily: "PoppinsSemiBold",
-    color: "#15803d",
-    letterSpacing: 1,
-  },
-  enjoyText: {
-    fontSize: 14 * (Dimensions.get("window").width / 400),
+  successMsgText: {
+    fontSize: 17 * scale,
     fontFamily: "PoppinsMedium",
-    color: "#FFF",
-    opacity: 0.8,
+    color: "#475569",
+    textAlign: "center",
+    lineHeight: 24 * scale,
+  },
+  successSubText: {
+    fontSize: 14 * scale,
+    fontFamily: "PoppinsRegular",
+    color: "#64748B",
+    marginTop: 6,
     textAlign: "center",
   },
 
   /* ALERT STYLES */
   alertOverlay: {
     flex: 1,
-    backgroundColor: "rgba(15,23,42,0.6)",
+    backgroundColor: "rgba(15,23,42,0.65)",
     justifyContent: "center",
     alignItems: "center",
   },
   alertCard: {
-    width: "85%",
+    width: "82%",
     borderRadius: 30,
     overflow: "hidden",
     elevation: 20,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.2,
-    shadowRadius: 15,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.25,
+    shadowRadius: 18,
   },
   alertContent: {
-    padding: 30,
+    paddingVertical: 45,
+    paddingHorizontal: 30,
+    backgroundColor: "#FFFFFF",
     alignItems: "center",
   },
   alertIconRing: {
-    width: 80 * scale,
-    height: 80 * scale,
-    borderRadius: 40 * scale,
+    width: 86 * scale,
+    height: 86 * scale,
+    borderRadius: 43 * scale,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 24,
   },
   alertTitleText: {
-    fontSize: 22 * scale,
+    fontSize: 24 * scale,
     fontFamily: "PoppinsSemiBold",
-    color: "#0F172A",
-    fontWeight: "900",
+    color: "#1E293B",
+    fontWeight: "800",
     marginBottom: 10,
     textAlign: "center",
   },
   alertMsgText: {
-    fontSize: 14 * scale,
+    fontSize: 16 * scale,
     fontFamily: "PoppinsMedium",
-    color: "#475569",
+    color: "#64748B",
     textAlign: "center",
-    marginBottom: 25,
     lineHeight: 22 * scale,
+  },
+  alertSubText: {
+    fontSize: 14 * scale,
+    fontFamily: "PoppinsRegular",
+    color: "#94A3B8",
+    marginTop: 8,
+    textAlign: "center",
   },
   alertBtn: {
     width: "100%",
-    borderRadius: 15,
+    borderRadius: 16,
     overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
   },
   alertBtnGrad: {
-    paddingVertical: 14,
+    paddingVertical: 16,
     alignItems: "center",
   },
   alertBtnText: {
-    fontSize: 15 * scale,
+    fontSize: 16 * scale,
     fontFamily: "PoppinsSemiBold",
     color: "#FFF",
     fontWeight: "800",
+    letterSpacing: 0.5,
   },
 });

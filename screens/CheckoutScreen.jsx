@@ -754,24 +754,26 @@ export default function CheckoutScreen({ navigation }) {
         <View style={styles.alertOverlay}>
           <Animated.View style={[styles.alertCard, { transform: [{ scale: alertScale }] }]}>
             <LinearGradient
-              colors={alertType === 'error' ? ["#FFF5F5", "#FFFFFF"] : ["#F0FDF4", "#FFFFFF"]}
+              colors={alertType === 'error' ? ["#FFFFFF", "#FFF5F5"] : ["#FFFFFF", "#F0FDF4"]}
               style={styles.alertContent}
             >
               <View style={[styles.alertIconRing, { backgroundColor: alertType === 'error' ? '#FEE2E2' : '#DCFCE7' }]}>
                 <Ionicons
                   name={alertType === 'error' ? "close-circle" : "information-circle"}
-                  size={40}
+                  size={46 * scale}
                   color={alertType === 'error' ? "#EF4444" : "#16A34A"}
                 />
               </View>
               <Text style={styles.alertTitleText}>{alertTitle}</Text>
               <Text style={styles.alertMsgText}>{alertMsg}</Text>
-              <TouchableOpacity style={styles.alertBtn} onPress={hidePremiumAlert}>
+              <TouchableOpacity style={styles.alertBtn} onPress={hidePremiumAlert} activeOpacity={0.8}>
                 <LinearGradient
-                  colors={alertType === 'error' ? ["#EF4444", "#DC2626"] : ["#16A34A", "#15803D"]}
+                  colors={alertType === 'error' ? ["#EF4444", "#B91C1C"] : ["#16A34A", "#15803D"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
                   style={styles.alertBtnGrad}
                 >
-                  <Text style={styles.alertBtnText}>Got it</Text>
+                  <Text style={styles.alertBtnText}>Ok</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </LinearGradient>
@@ -950,24 +952,66 @@ const styles = StyleSheet.create({
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 15, paddingLeft: 4 },
   sectionTitle: { fontSize: 18 * scale, fontFamily: 'PoppinsBold', color: '#0F172A', marginLeft: 10, fontWeight: '900' },
   premiumCreditCard: {
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#FFFFFF',
     borderRadius: 24,
-    padding: 24,
-    elevation: 2,
+    overflow: 'hidden',
+    elevation: 6,
     shadowColor: "#000",
-    shadowOpacity: 0.03,
-    shadowRadius: 10,
-    borderWidth: 1.5,
-    borderColor: '#E5E7EB',
+    shadowOpacity: 0.07,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
   },
-  creditItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
-  creditIconBox: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  creditLabelText: { fontSize: 14 * scale, fontFamily: 'PoppinsBold', fontWeight: '700', color: '#0F172A', letterSpacing: 0.3, textTransform: 'uppercase' },
-  creditValueText: { fontSize: 22 * scale, fontFamily: 'PoppinsBold', color: '#0F172A', fontWeight: '700', marginTop: 2 },
-  premiumApplyBtn: { paddingVertical: 8, paddingHorizontal: 18, borderRadius: 30, borderWidth: 1.5, borderColor: '#16A34A', backgroundColor: '#FFF' },
+  creditItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+  },
+  creditIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  creditLabelText: {
+    fontSize: 11 * scale,
+    fontFamily: 'PoppinsBold',
+    fontWeight: '700',
+    color: '#94A3B8',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  creditValueText: {
+    fontSize: 22 * scale,
+    fontFamily: 'PoppinsBold',
+    color: '#0F172A',
+    fontWeight: '900',
+    marginTop: 0,
+  },
+  premiumApplyBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+    borderRadius: 30,
+    borderWidth: 1.5,
+    borderColor: '#16A34A',
+    backgroundColor: '#F0FDF4',
+  },
   premiumAppliedBtn: { backgroundColor: '#16A34A' },
-  premiumApplyBtnText: { fontSize: 14 * scale, fontFamily: 'PoppinsBold', fontWeight: '700', color: '#16A34A' },
-  itemSeparatorLine: { height: 1, backgroundColor: '#F1F5F9', marginVertical: 10 },
+  premiumApplyBtnText: {
+    fontSize: 13 * scale,
+    fontFamily: 'PoppinsBold',
+    fontWeight: '800',
+    color: '#16A34A',
+  },
+  itemSeparatorLine: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginHorizontal: 0,
+  },
 
   /* BILLING */
   billingSection: { paddingHorizontal: 16, marginBottom: 30 },
@@ -1022,9 +1066,11 @@ const styles = StyleSheet.create({
   },
   btnTextPremium: {
     color: '#FFF',
-    fontFamily: 'PoppinsSemiBold',
-    fontSize: 17 * scale,
-    letterSpacing: 0.5
+    fontFamily: 'PoppinsBold',
+    fontWeight: '900',
+    fontSize: 18 * scale,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
   },
 
   /* MODALS & SHEETS */
@@ -1069,9 +1115,11 @@ const styles = StyleSheet.create({
   },
   sheetActionText: {
     color: '#FFF',
-    fontSize: 16 * scale,
-    fontFamily: 'PoppinsSemiBold',
-    letterSpacing: 0.5
+    fontSize: 18 * scale,
+    fontFamily: 'PoppinsBold',
+    fontWeight: '900',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
   },
 
   sheetDesc: { fontSize: 14 * scale, fontFamily: 'PoppinsMedium', color: '#64748B', marginBottom: 20, lineHeight: 22 },
@@ -1138,61 +1186,67 @@ const styles = StyleSheet.create({
   /* ALERT STYLES */
   alertOverlay: {
     flex: 1,
-    backgroundColor: "rgba(15,23,42,0.6)",
+    backgroundColor: "rgba(15,23,42,0.65)",
     justifyContent: "center",
     alignItems: "center",
   },
   alertCard: {
-    width: "85%",
+    width: "82%",
     borderRadius: 30,
     overflow: "hidden",
     elevation: 20,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.2,
-    shadowRadius: 15,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.25,
+    shadowRadius: 18,
   },
   alertContent: {
-    padding: 30,
+    padding: 32,
     alignItems: "center",
   },
   alertIconRing: {
-    width: 80 * scale,
-    height: 80 * scale,
-    borderRadius: 40 * scale,
+    width: 86 * scale,
+    height: 86 * scale,
+    borderRadius: 43 * scale,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 22,
   },
   alertTitleText: {
-    fontSize: 22 * scale,
-    fontFamily: "PoppinsBold",
-    color: "#0F172A",
-    fontWeight: "900",
+    fontSize: 24 * scale,
+    fontFamily: "PoppinsSemiBold",
+    color: "#1E293B",
+    fontWeight: "800",
     marginBottom: 10,
     textAlign: "center",
   },
   alertMsgText: {
-    fontSize: 14 * scale,
+    fontSize: 15 * scale,
     fontFamily: "PoppinsMedium",
-    color: "#475569",
+    color: "#64748B",
     textAlign: "center",
-    marginBottom: 25,
+    marginBottom: 30,
     lineHeight: 22 * scale,
   },
   alertBtn: {
     width: "100%",
-    borderRadius: 15,
+    borderRadius: 16,
     overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
   },
   alertBtnGrad: {
-    paddingVertical: 14,
+    paddingVertical: 16,
     alignItems: "center",
   },
   alertBtnText: {
-    fontSize: 15 * scale,
-    fontFamily: "PoppinsBold",
+    fontSize: 16 * scale,
+    fontFamily: "PoppinsSemiBold",
     color: "#FFF",
     fontWeight: "800",
+    letterSpacing: 0.5,
   },
 });

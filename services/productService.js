@@ -18,6 +18,7 @@ export const fetchProducts = async (userId, categoryId) => {
 
           return {
             ...product,
+            image: product.image ? product.image.replace("http://", "https://") : product.image,
             contains: Array.isArray(c) ? c : [],
             restaurantId: product.user_id,
           };

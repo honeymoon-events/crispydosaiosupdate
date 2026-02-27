@@ -5,10 +5,15 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
  */
 export const logoutUser = async (navigation) => {
   try {
-    await AsyncStorage.removeItem("token");
-    await AsyncStorage.removeItem("user");
+    await AsyncStorage.multiRemove([
+      "token",
+      "user",
+      "profile_cache",
+      "wallet_summary_cache",
+      "cart"
+    ]);
 
-    // Reset navigation stack and go to Home screen
+    // Reset navigation stack and go to Splash or Home screen
     navigation.reset({
       index: 0,
       routes: [{ name: "Home" }],

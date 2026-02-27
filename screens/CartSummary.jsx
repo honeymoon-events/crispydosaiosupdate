@@ -209,10 +209,15 @@ export default function CartSummary({ navigation }) {
           <TouchableOpacity
             style={styles.browseBtn}
             onPress={() => navigation.navigate("Resturent")}
+            activeOpacity={0.9}
           >
-            <LinearGradient colors={["#FF2B5C", "#FF6B8B"]} style={styles.browseGradient}>
-              <Text style={styles.browseText}>Start Ordering</Text>
-            </LinearGradient>
+            <Text style={styles.browseText}>Start Ordering</Text>
+            <Ionicons
+              name="arrow-forward"
+              size={18}
+              color="#FFF"
+              style={{ marginLeft: 8 }}
+            />
           </TouchableOpacity>
         </ScrollView>
       ) : (
@@ -387,13 +392,58 @@ const styles = StyleSheet.create({
   loaderFull: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loaderText: { marginTop: 15, fontFamily: 'PoppinsMedium', color: '#666' },
 
-  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 },
-  emptyImageWrap: { width: 140, height: 140, backgroundColor: '#EEE', borderRadius: 70, alignItems: 'center', justifyContent: 'center', marginBottom: 25 },
-  emptyTitle: { fontSize: 22 * scale, fontFamily: 'PoppinsBold', color: '#1C1C1C' },
-  emptySubtitle: { fontSize: 13 * scale, fontFamily: 'PoppinsMedium', color: '#777', textAlign: 'center', marginTop: 10, lineHeight: 20 },
-  browseBtn: { marginTop: 30, borderRadius: 12, overflow: 'hidden', elevation: 5 },
-  browseGradient: { paddingVertical: 14, paddingHorizontal: 30 },
-  browseText: { color: '#FFF', fontFamily: 'PoppinsBold', fontSize: 15 * scale },
+  emptyContainer: {
+    flexGrow: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 40,
+    paddingVertical: 32,
+  },
+  emptyImageWrap: {
+    width: 150,
+    height: 150,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 75,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 26,
+  },
+  emptyTitle: {
+    fontSize: 24 * scale,
+    fontFamily: 'PoppinsBold',
+    color: '#0F172A',
+  },
+  emptySubtitle: {
+    fontSize: 14 * scale,
+    fontFamily: 'PoppinsMedium',
+    color: '#6B7280',
+    textAlign: 'center',
+    marginTop: 10,
+    lineHeight: 22,
+  },
+  browseBtn: {
+    marginTop: 30,
+    borderRadius: 999,
+    backgroundColor: "#FF2B5C",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 6,
+    width: "80%",
+    maxWidth: 320,
+    shadowColor: "#FF2B5C",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+  },
+  browseText: {
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    color: "#FFF",
+    fontFamily: "PoppinsBold",
+    fontSize: 16 * scale,
+    letterSpacing: 0.5,
+  },
 
   listHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', padding: 20, paddingTop: 15 },
   headerTitle: {
@@ -453,7 +503,7 @@ const styles = StyleSheet.create({
   qtyContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8F8F8', borderRadius: 12, padding: 4, borderWidth: 1, borderColor: '#EEE' },
   actionBtnMinus: { width: 34, height: 34, backgroundColor: '#FFF', borderRadius: 10, alignItems: 'center', justifyContent: 'center', elevation: 1, borderWidth: 1, borderColor: '#E2E8F0' },
   actionBtnPlus: { width: 34, height: 34, backgroundColor: '#FF2B5C', borderRadius: 10, alignItems: 'center', justifyContent: 'center', elevation: 3, shadowColor: '#FF2B5C', shadowOpacity: 0.3, shadowOffset: { width: 0, height: 4 } },
-  qtyText: { fontSize: 16 * scale, fontFamily: 'PoppinsBold', fontWeight: '900', color: '#1C1C1C', marginHorizontal: 12, minWidth: 20, textAlign: 'center' },
+  qtyText: { fontSize: 18 * scale, fontFamily: 'PoppinsBold', fontWeight: '900', color: '#000000', marginHorizontal: 12, minWidth: 20, textAlign: 'center' },
   totalTextSmall: { fontSize: 15 * scale, fontFamily: 'PoppinsBold', color: '#1C1C1C', marginTop: 10 },
 
   billSummary: { padding: 16, paddingBottom: 10 },
@@ -522,11 +572,13 @@ const styles = StyleSheet.create({
   },
   stickyBtnText: {
     color: '#FFF',
-    fontSize: 17 * scale,
-    fontFamily: 'PoppinsSemiBold', // Cleaner, more visible
-    letterSpacing: 0.5,
+    fontSize: 18 * scale,
+    fontFamily: 'PoppinsBold',
+    fontWeight: '900',
+    letterSpacing: 0.8,
     textAlign: 'center',
     includeFontPadding: false,
+    textTransform: 'uppercase',
   },
 
   /* PREMIUM ADD MORE CARD */

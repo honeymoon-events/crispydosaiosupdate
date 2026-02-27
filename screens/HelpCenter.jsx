@@ -7,12 +7,17 @@ import {
     StyleSheet,
     TouchableOpacity,
     Linking,
-    Alert,
+    Platform,
+    Dimensions,
+    StatusBar,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import LinearGradient from "react-native-linear-gradient";
-import { StatusBar } from "react-native";
+
+
+const { width } = Dimensions.get("window");
+const scale = width / 400;
 
 export default function HelpCenter({ navigation }) {
     const insets = useSafeAreaInsets();
@@ -106,7 +111,7 @@ export default function HelpCenter({ navigation }) {
     ];
 
     return (
-        <LinearGradient colors={["#d7f7df", "#ffffff"]} style={styles.container}>
+        <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
             <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
@@ -115,26 +120,14 @@ export default function HelpCenter({ navigation }) {
                     activeOpacity={0.7}
                     style={styles.backBtn}
                 >
-                    <Ionicons name="arrow-back" size={28} color="#222" />
+                    <Ionicons name="chevron-back" size={28 * scale} color="#1C1C1C" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Help Center</Text>
-                <View style={{ width: 28 }} />
+                <View style={styles.headerSpacer} />
             </View>
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-                {/* Hero Section */}
-                <View style={styles.heroCard}>
-                    <LinearGradient
-                        colors={["#0b7a2a", "#16a34a"]}
-                        style={styles.heroGradient}
-                    >
-                        <Ionicons name="headset" size={64} color="#ffffff" />
-                        <Text style={styles.heroTitle}>We're Here to Help!</Text>
-                        <Text style={styles.heroSubtitle}>
-                            Get in touch with our support team
-                        </Text>
-                    </LinearGradient>
-                </View>
+
 
                 {/* Contact Methods */}
                 <View style={styles.section}>
@@ -236,192 +229,193 @@ export default function HelpCenter({ navigation }) {
                     </View>
                 </View>
             </ScrollView>
-        </LinearGradient>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor: "#FFFFFF",
     },
     header: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        paddingHorizontal: 16,
-        paddingVertical: 16,
+        paddingHorizontal: 20,
+        paddingBottom: 15,
+        backgroundColor: "#FFFFFF",
     },
     backBtn: {
-        padding: 4,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: "#f8fafc",
+        justifyContent: "center",
+        alignItems: "center",
+        borderWidth: 1,
+        borderColor: "#f1f5f9",
+    },
+    headerSpacer: {
+        width: 44,
     },
     headerTitle: {
-        fontSize: 22,
-        fontWeight: "700",
-        color: "#1C1C1C",
+        fontSize: 20 * scale,
+        fontWeight: "800",
+        color: "#0f172a",
         fontFamily: "PoppinsBold",
-        includeFontPadding: false,
-        textAlignVertical: 'center',
     },
     content: {
         flex: 1,
     },
-    heroCard: {
-        marginHorizontal: 20,
-        marginTop: 20,
-        marginBottom: 24,
-        borderRadius: 20,
-        overflow: "hidden",
-        elevation: 8,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-    },
-    heroGradient: {
-        alignItems: "center",
-        padding: 40,
-    },
-    heroTitle: {
-        fontSize: 26,
-        fontWeight: "700",
-        color: "#ffffff",
-        marginTop: 16,
-    },
-    heroSubtitle: {
-        fontSize: 14,
-        color: "#e8f5e9",
-        marginTop: 8,
-    },
+
     section: {
-        marginBottom: 24,
+        marginBottom: 30,
         paddingHorizontal: 20,
     },
     sectionTitle: {
-        fontSize: 20,
-        fontWeight: "700",
-        color: "#222",
+        fontSize: 18 * scale,
+        fontWeight: "800",
+        color: "#0f172a",
         marginBottom: 16,
+        fontFamily: "PoppinsBold",
     },
     contactCard: {
         flexDirection: "row",
         alignItems: "center",
         backgroundColor: "#ffffff",
-        borderRadius: 16,
+        borderRadius: 20,
         padding: 16,
-        marginBottom: 12,
-        elevation: 4,
+        marginBottom: 14,
+        elevation: 5,
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 10,
         borderWidth: 1,
-        borderColor: "#f0f0f0",
+        borderColor: "#f8fafc",
     },
     contactIcon: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
+        width: 52 * scale,
+        height: 52 * scale,
+        borderRadius: 16,
         justifyContent: "center",
         alignItems: "center",
-        marginRight: 16,
+        marginRight: 15,
     },
     contactInfo: {
         flex: 1,
     },
     contactTitle: {
-        fontSize: 16,
-        fontWeight: "700",
-        color: "#222",
-        marginBottom: 4,
+        fontSize: 15 * scale,
+        fontWeight: "800",
+        color: "#0f172a",
+        fontFamily: "PoppinsBold",
+        marginBottom: 2,
     },
     contactSubtitle: {
-        fontSize: 14,
-        color: "#666",
+        fontSize: 13 * scale,
+        color: "#64748b",
+        fontFamily: "PoppinsMedium",
     },
     faqButton: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
         backgroundColor: "#0b7a2a",
-        borderRadius: 16,
-        padding: 18,
-        marginBottom: 16,
-        elevation: 4,
+        borderRadius: 20,
+        padding: 20,
+        marginBottom: 20,
+        elevation: 6,
+        shadowColor: "#0b7a2a",
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.3,
+        shadowRadius: 10,
     },
     faqButtonContent: {
         flexDirection: "row",
         alignItems: "center",
     },
     faqButtonText: {
-        fontSize: 16,
-        fontWeight: "700",
+        fontSize: 16 * scale,
+        fontWeight: "800",
         color: "#ffffff",
         marginLeft: 12,
+        fontFamily: "PoppinsBold",
     },
     categoryCard: {
-        backgroundColor: "#f8f8f8",
-        borderRadius: 16,
-        padding: 16,
-        marginBottom: 12,
-        borderLeftWidth: 4,
+        backgroundColor: "#ffffff",
+        borderRadius: 20,
+        padding: 20,
+        marginBottom: 15,
+        elevation: 3,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        borderLeftWidth: 5,
         borderLeftColor: "#0b7a2a",
     },
     categoryHeader: {
         flexDirection: "row",
         alignItems: "center",
-        marginBottom: 12,
+        marginBottom: 15,
     },
     categoryIcon: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
+        width: 40 * scale,
+        height: 40 * scale,
+        borderRadius: 12,
         justifyContent: "center",
         alignItems: "center",
         marginRight: 12,
     },
     categoryTitle: {
-        fontSize: 16,
-        fontWeight: "700",
-        color: "#222",
+        fontSize: 16 * scale,
+        fontWeight: "800",
+        color: "#1e293b",
+        fontFamily: "PoppinsBold",
     },
     questionText: {
-        fontSize: 14,
-        color: "#555",
-        marginBottom: 6,
-        marginLeft: 8,
+        fontSize: 13 * scale,
+        color: "#475569",
+        marginBottom: 8,
+        marginLeft: 4,
+        fontFamily: "PoppinsMedium",
     },
     hoursCard: {
         backgroundColor: "#ffffff",
-        borderRadius: 16,
-        padding: 20,
-        elevation: 4,
+        borderRadius: 24,
+        padding: 24,
+        elevation: 5,
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
+        shadowOffset: { width: 0, height: 6 },
         shadowOpacity: 0.1,
-        shadowRadius: 4,
+        shadowRadius: 15,
         borderWidth: 1,
-        borderColor: "#f0f0f0",
+        borderColor: "#f8fafc",
     },
     hoursRow: {
         flexDirection: "row",
         alignItems: "center",
     },
     hoursInfo: {
-        marginLeft: 16,
+        marginLeft: 18,
     },
     hoursDay: {
-        fontSize: 16,
-        fontWeight: "700",
-        color: "#222",
+        fontSize: 16 * scale,
+        fontWeight: "800",
+        color: "#0f172a",
+        fontFamily: "PoppinsBold",
         marginBottom: 4,
     },
     hoursTime: {
-        fontSize: 14,
-        color: "#666",
+        fontSize: 14 * scale,
+        color: "#64748b",
+        fontFamily: "PoppinsMedium",
     },
     hoursDivider: {
         height: 1,
-        backgroundColor: "#e0e0e0",
-        marginVertical: 16,
+        backgroundColor: "#f1f5f9",
+        marginVertical: 20,
     },
 });

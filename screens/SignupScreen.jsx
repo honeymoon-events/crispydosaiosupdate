@@ -47,6 +47,39 @@ export default function SignupScreen({ navigation }) {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Premium Alert State
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState("");
+  const [alertMsg, setAlertMsg] = useState("");
+  const [alertType, setAlertType] = useState("info");
+  const alertScale = React.useRef(new Animated.Value(0)).current;
+
+  const showPremiumAlert = (title, msg, type = "info") => {
+    setAlertTitle(title);
+    setAlertMsg(msg);
+    setAlertType(type);
+    setAlertVisible(true);
+    Animated.spring(alertScale, {
+      toValue: 1,
+      tension: 50,
+      friction: 8,
+      useNativeDriver: true,
+    }).start();
+
+    // Auto dismiss for success/error
+    if (type === "success" || type === "error") {
+      setTimeout(() => hidePremiumAlert(), 2500);
+    }
+  };
+
+  const hidePremiumAlert = () => {
+    Animated.timing(alertScale, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => setAlertVisible(false));
+  };
+
   // Selection Modal State
   const [pickerModal, setPickerModal] = useState({ visible: false, type: "", data: [], title: "" });
 
@@ -87,32 +120,69 @@ export default function SignupScreen({ navigation }) {
   }, []);
 
   const handleSignup = async () => {
-    if (!name.trim()) return Alert.alert("Required", "Full name is required.");
-    if (!email.trim() || !email.includes("@")) return Alert.alert("Required", "A valid email is required.");
-    if (!phone.trim()) return Alert.alert("Required", "Phone number is required.");
-    if (password.length < 6) return Alert.alert("Required", "Password must be at least 6 characters.");
-    if (password !== confirmPassword) return Alert.alert("Required", "Passwords do not match.");
-    if (!preferredRestaurant) return Alert.alert("Required", "Select your preferred restaurant.");
-    if (!dob) return Alert.alert("Required", "Please select your Date of Birth.");
-    if (!termsAccepted) return Alert.alert("Required", "Please accept Terms & Conditions.");
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim();
+    const trimmedPhone = phone.trim();
+    const trimmedReferral = referralCode.trim();
+
+    if (!trimmedName) {
+      return Alert.alert("Required", "Full name is required.");
+    }
+    if (!trimmedEmail || !trimmedEmail.includes("@")) {
+      return Alert.alert("Required", "A valid email is required.");
+    }
+    if (!trimmedPhone) {
+      return Alert.alert("Required", "Phone number is required.");
+    }
+    if (password.length < 6) {
+      return Alert.alert("Required", "Password must be at least 6 characters.");
+    }
+    if (password !== confirmPassword) {
+      return Alert.alert("Required", "Passwords do not match.");
+    }
+    if (!preferredRestaurant) {
+      return Alert.alert("Required", "Select your preferred restaurant.");
+    }
+    if (!dob || !(dob instanceof Date)) {
+      return Alert.alert("Required", "Please select a valid Date of Birth.");
+    }
+    if (!termsAccepted) {
+      return Alert.alert("Required", "Please accept Terms & Conditions.");
+    }
+
+    const payload = {
+      full_name: trimmedName,
+      email: trimmedEmail,
+      mobile_number: trimmedPhone,
+      country_code: `+${callingCode}`,
+      password,
+      preferred_restaurant: preferredRestaurant,
+      date_of_birth: dob.toISOString().split("T")[0],
+      referral_code: trimmedReferral || "",
+      gender: gender || "",
+    };
 
     setLoading(true);
     try {
-      await registerUser({
-        full_name: name,
-        email,
-        mobile_number: phone,
-        country_code: `+${callingCode}`,
-        password,
-        preferred_restaurant: preferredRestaurant,
-        date_of_birth: dob ? dob.toISOString().split("T")[0] : null,
-        referral_code: referralCode || null,
-        gender: gender || null,
-      });
-      Alert.alert("Success", "Account created successfully! Please login.");
-      navigation.navigate("Login");
+      const { user, status, message } = await registerUser(payload);
+
+      if (user) {
+        showPremiumAlert("Welcome", "Your account has been created successfully.", "success");
+        setTimeout(() => {
+          navigation.reset({
+            index: 0,
+            routes: [{ name: "Resturent" }],
+          });
+        }, 2500);
+      } else {
+        showPremiumAlert("Success", message || "Account created successfully! Please login.", "success");
+        setTimeout(() => {
+          navigation.navigate("Login");
+        }, 2500);
+      }
     } catch (e) {
-      Alert.alert("Signup Failed", e.message || "Something went wrong.");
+      console.log("Signup exception:", e);
+      showPremiumAlert("Signup Failed", e.message || "Something went wrong during registration.", "error");
     } finally {
       setLoading(false);
     }
@@ -219,17 +289,60 @@ export default function SignupScreen({ navigation }) {
         </TouchableOpacity>
       </ScrollView>
 
-      {showDobPicker && (
-        <DateTimePicker
-          value={dob || new Date(new Date().setFullYear(new Date().getFullYear() - 18))}
-          mode="date"
-          display="spinner"
-          onChange={(e, date) => {
-            setShowDobPicker(false);
-            if (date) setDob(date);
-          }}
-        />
-      )}
+      {/* DATE OF BIRTH PICKER MODAL */}
+      <Modal visible={showDobPicker} transparent animationType="slide" onRequestClose={() => setShowDobPicker(false)}>
+        <View style={styles.dobModalOverlay}>
+          <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setShowDobPicker(false)} />
+          <View style={styles.dobModalSheet}>
+            <View style={styles.dobSheetHandle} />
+            <View style={styles.dobSheetHeader}>
+              <TouchableOpacity onPress={() => setShowDobPicker(false)} style={styles.dobCancelBtn}>
+                <Text style={styles.dobCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <Text style={styles.dobSheetTitle}>Date of Birth</Text>
+              <TouchableOpacity
+                onPress={() => setShowDobPicker(false)}
+                style={styles.dobDoneBtn}
+              >
+                <Text style={styles.dobDoneText}>Done</Text>
+              </TouchableOpacity>
+            </View>
+            <DateTimePicker
+              value={dob || new Date(new Date().setFullYear(new Date().getFullYear() - 18))}
+              mode="date"
+              display="spinner"
+              textColor="#0F172A"
+              maximumDate={new Date()}
+              onChange={(e, date) => {
+                if (date) setDob(date);
+              }}
+              style={styles.dobPicker}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* UNIFIED PREMIUM MODAL (Success / Error / Info) */}
+      <Modal visible={alertVisible} transparent animationType="fade">
+        <View style={styles.alertOverlay}>
+          <Animated.View style={[styles.alertCard, { transform: [{ scale: alertScale }] }]}>
+            <View style={styles.alertContent}>
+              <View style={[
+                styles.alertIconRing,
+                { backgroundColor: alertType === 'error' ? '#FEF2F2' : alertType === 'success' ? '#F0FDF4' : '#F0F9FF' }
+              ]}>
+                <Ionicons
+                  name={alertType === 'error' ? "close" : alertType === 'success' ? "checkmark" : "information"}
+                  size={46 * scale}
+                  color={alertType === 'error' ? "#EF4444" : alertType === 'success' ? "#16A34A" : "#0EA5E9"}
+                />
+              </View>
+              <Text style={styles.alertTitleText}>{alertTitle}</Text>
+              <Text style={styles.alertMsgText}>{alertMsg}</Text>
+            </View>
+          </Animated.View>
+        </View>
+      </Modal>
 
       {/* CUSTOM MODAL PICKER */}
       <Modal visible={pickerModal.visible} transparent animationType="fade" onRequestClose={() => setPickerModal({ ...pickerModal, visible: false })}>
@@ -345,7 +458,12 @@ const styles = StyleSheet.create({
   link: { color: "#16a34a", fontWeight: "800" },
   mainBtn: { backgroundColor: "#16a34a", height: 50, borderRadius: 12, justifyContent: "center", alignItems: "center", elevation: 4, shadowOpacity: 0.2 },
   btnDisabled: { opacity: 0.6 },
-  btnText: { color: "#FFF", fontSize: 16, fontWeight: "800" },
+  btnText: {
+    color: "#FFFFFF",
+    fontSize: 20 * scale,
+    fontFamily: "PoppinsBold",
+    fontWeight: "800",
+  },
   footer: { marginTop: 25, alignItems: "center" },
   footerText: { color: "#64748B", fontSize: 14 },
   footerLink: { color: "#16a34a", fontWeight: "800" },
@@ -358,4 +476,116 @@ const styles = StyleSheet.create({
   modalItemTextActive: { color: "#16a34a", fontWeight: "800" },
   modalCloseBtn: { marginTop: 15, paddingVertical: 14, alignItems: "center", backgroundColor: "#F1F5F9", borderRadius: 12 },
   modalCloseText: { fontSize: 16, color: "#64748B", fontWeight: "700" },
+
+  /* DOB PICKER MODAL */
+  dobModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.5)",
+    justifyContent: "flex-end",
+  },
+  dobModalSheet: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingBottom: 30,
+    elevation: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -5 },
+    shadowOpacity: 0.15,
+    shadowRadius: 15,
+  },
+  dobSheetHandle: {
+    width: 44,
+    height: 4,
+    backgroundColor: "#E2E8F0",
+    borderRadius: 4,
+    alignSelf: "center",
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  dobSheetHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+  },
+  dobSheetTitle: {
+    fontSize: 16 * scale,
+    fontFamily: "PoppinsBold",
+    fontWeight: "800",
+    color: "#0F172A",
+  },
+  dobCancelBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  dobCancelText: {
+    fontSize: 15 * scale,
+    color: "#64748B",
+    fontWeight: "600",
+  },
+  dobDoneBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: "#16a34a",
+    borderRadius: 10,
+  },
+  dobDoneText: {
+    fontSize: 15 * scale,
+    color: "#FFFFFF",
+    fontWeight: "800",
+  },
+  dobPicker: {
+    width: "100%",
+    height: 200,
+  },
+  /* ALERT STYLES */
+  alertOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(15,23,42,0.65)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  alertCard: {
+    width: "82%",
+    borderRadius: 30,
+    backgroundColor: '#FFFFFF',
+    overflow: "hidden",
+    elevation: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.25,
+    shadowRadius: 18,
+  },
+  alertContent: {
+    paddingVertical: 45,
+    paddingHorizontal: 30,
+    alignItems: "center",
+  },
+  alertIconRing: {
+    width: 86 * scale,
+    height: 86 * scale,
+    borderRadius: 43 * scale,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  alertTitleText: {
+    fontSize: 24 * scale,
+    fontFamily: "PoppinsSemiBold",
+    color: "#1E293B",
+    fontWeight: "800",
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  alertMsgText: {
+    fontSize: 16 * scale,
+    fontFamily: "PoppinsMedium",
+    color: "#64748B",
+    textAlign: "center",
+    lineHeight: 22 * scale,
+  },
 });

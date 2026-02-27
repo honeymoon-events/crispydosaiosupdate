@@ -11,7 +11,7 @@ export const fetchRestaurants = async () => {
         userId: r.userid,
         name: r.name,
         address: r.address,
-        photo: r.photo,
+        photo: r.photo ? r.photo.replace("http://", "https://") : r.photo,
         instore: r.instore,
         kerbside: r.kerbside,
         latitude: r.latitude,
@@ -30,8 +30,11 @@ export const fetchRestaurantDetails = async (userId) => {
   try {
     const res = await api.get(`/restaurant/${userId}`);
     if (res.data.status === 1 && res.data.data.length > 0) {
-      // restaurant_photo here is already a full URL
-      return res.data.data[0];
+      const restaurant = res.data.data[0];
+      if (restaurant.restaurant_photo) {
+        restaurant.restaurant_photo = restaurant.restaurant_photo.replace("http://", "https://");
+      }
+      return restaurant;
     }
     return null;
   } catch (error) {

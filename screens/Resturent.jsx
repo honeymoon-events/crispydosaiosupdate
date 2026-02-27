@@ -1,5 +1,5 @@
 // Resturent.js
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -53,12 +53,7 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
   return (R * c).toFixed(1); // Distance in miles
 };
 
-function RestaurantCard({ name, address, photo, onPress, instore, kerbside, index, latitude, longitude, userLocation }) {
-  const isEven = index % 2 === 0;
-  let distance = null;
-  if (userLocation && latitude && longitude) {
-    distance = calculateDistance(userLocation.latitude, userLocation.longitude, latitude, longitude);
-  }
+function RestaurantCard({ name, address, photo, onPress, instore, kerbside, distance }) {
 
   return (
     <TouchableOpacity
@@ -66,24 +61,12 @@ function RestaurantCard({ name, address, photo, onPress, instore, kerbside, inde
       onPress={onPress}
       activeOpacity={0.9}
     >
-      <LinearGradient
-        colors={isEven ? ["#FDF2F8", "#FBE7EF"] : ["#F0FDF4", "#DCFCE7"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={cardStyles.cardBody}
-      >
+      <View style={cardStyles.cardBody}>
         <View style={cardStyles.imageContainer}>
           <Image
             source={photo ? { uri: photo } : RestaurantImg}
             style={cardStyles.image}
           />
-          {/* Distance Badge Overlay on Image */}
-          {distance && (
-            <View style={cardStyles.distanceBadge}>
-              <Ionicons name="navigate-circle" size={14 * scale} color="#FFF" />
-              <Text style={cardStyles.distanceText}>{distance} mi</Text>
-            </View>
-          )}
         </View>
 
         <View style={cardStyles.info}>
@@ -106,6 +89,14 @@ function RestaurantCard({ name, address, photo, onPress, instore, kerbside, inde
             </Text>
           </View>
 
+          {distance && (
+            <View style={cardStyles.distanceRow}>
+              <View style={cardStyles.distanceDot} />
+              <Text style={cardStyles.distanceLabel}>Away:</Text>
+              <Text style={cardStyles.distanceValue}>{distance} miles</Text>
+            </View>
+          )}
+
           <View style={cardStyles.serviceRow}>
             {instore && (
               <View style={cardStyles.serviceChip}>
@@ -122,7 +113,7 @@ function RestaurantCard({ name, address, photo, onPress, instore, kerbside, inde
             )}
           </View>
         </View>
-      </LinearGradient>
+      </View>
     </TouchableOpacity>
   );
 }
@@ -259,16 +250,37 @@ export default function Resturent({ navigation }) {
     return () => clearInterval(timer);
   }, [activeIndex]);
 
-  const filteredRestaurants = restaurants.filter((r) =>
-    r.name.toLowerCase().includes(search.toLowerCase())
-  );
-
-  // Premium Alert State
+  // Move all hooks to the top
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState("");
   const [alertMsg, setAlertMsg] = useState("");
   const [alertType, setAlertType] = useState("info");
+  const [voiceListening, setVoiceListening] = useState(false);
+
   const alertScale = useRef(new Animated.Value(0)).current;
+
+  // Calculate distances and sort
+  const sortedAndFilteredRestaurants = useMemo(() => {
+    let list = restaurants.map(r => {
+      const dist = (userLocation && r.latitude && r.longitude)
+        ? calculateDistance(userLocation.latitude, userLocation.longitude, r.latitude, r.longitude)
+        : null;
+      return { ...r, distance: dist };
+    });
+
+    // If we have distances, sort by them
+    if (userLocation) {
+      list.sort((a, b) => {
+        if (a.distance === null) return 1;
+        if (b.distance === null) return -1;
+        return parseFloat(a.distance) - parseFloat(b.distance);
+      });
+    }
+
+    return list.filter((r) =>
+      r.name.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [restaurants, userLocation, search]);
 
   const showPremiumAlert = (title, msg, type = "info") => {
     setAlertTitle(title);
@@ -291,7 +303,6 @@ export default function Resturent({ navigation }) {
     }).start(() => setAlertVisible(false));
   };
 
-  const [voiceListening, setVoiceListening] = useState(false);
 
   useEffect(() => {
     if (!Voice) return;
@@ -566,18 +577,15 @@ export default function Resturent({ navigation }) {
             <View style={styles.listLine} />
           </View>
 
-          {filteredRestaurants.map((r, i) => (
+          {sortedAndFilteredRestaurants.map((r, i) => (
             <RestaurantCard
               key={i}
-              index={i}
               name={r.name}
               address={r.address}
               photo={r.photo}
               instore={r.instore}
               kerbside={r.kerbside}
-              latitude={r.latitude}
-              longitude={r.longitude}
-              userLocation={userLocation}
+              distance={r.distance}
               onPress={() =>
                 navigation.navigate("Categories", { userId: r.userId })
               }
@@ -623,7 +631,7 @@ export default function Resturent({ navigation }) {
         <View style={styles.alertOverlay}>
           <Animated.View style={[styles.alertCard, { transform: [{ scale: alertScale }] }]}>
             <LinearGradient
-              colors={alertType === 'error' ? ["#FFF5F5", "#FFFFFF"] : ["#F0FDF4", "#FFFFFF"]}
+              colors={alertType === 'error' ? ["#FFFFFF", "#FFF5F5"] : ["#FFFFFF", "#F0FDF4"]}
               style={styles.alertContent}
             >
               <View style={[
@@ -636,15 +644,17 @@ export default function Resturent({ navigation }) {
                       : alertType === 'success' ? "checkmark-circle"
                         : "information-circle"
                   }
-                  size={40}
+                  size={46 * scale}
                   color={alertType === 'error' ? "#EF4444" : "#16A34A"}
                 />
               </View>
               <Text style={styles.alertTitleText}>{alertTitle}</Text>
               <Text style={styles.alertMsgText}>{alertMsg}</Text>
-              <TouchableOpacity style={styles.alertBtn} onPress={hidePremiumAlert}>
+              <TouchableOpacity style={styles.alertBtn} onPress={hidePremiumAlert} activeOpacity={0.8}>
                 <LinearGradient
-                  colors={alertType === 'error' ? ["#EF4444", "#DC2626"] : ["#16A34A", "#15803D"]}
+                  colors={alertType === 'error' ? ["#EF4444", "#B91C1C"] : ["#16A34A", "#15803D"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
                   style={styles.alertBtnGrad}
                 >
                   <Text style={styles.alertBtnText}>Ok</Text>
@@ -935,62 +945,68 @@ const styles = StyleSheet.create({
   /* ALERT STYLES */
   alertOverlay: {
     flex: 1,
-    backgroundColor: "rgba(15,23,42,0.6)",
+    backgroundColor: "rgba(15,23,42,0.65)",
     justifyContent: "center",
     alignItems: "center",
   },
   alertCard: {
-    width: "85%",
+    width: "82%",
     borderRadius: 30,
     overflow: "hidden",
     elevation: 20,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.2,
-    shadowRadius: 15,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.25,
+    shadowRadius: 18,
   },
   alertContent: {
-    padding: 30,
+    padding: 32,
     alignItems: "center",
   },
   alertIconRing: {
-    width: 80 * scale,
-    height: 80 * scale,
-    borderRadius: 40 * scale,
+    width: 86 * scale,
+    height: 86 * scale,
+    borderRadius: 43 * scale,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 22,
   },
   alertTitleText: {
-    fontSize: 22 * scale,
-    fontFamily: "PoppinsBold",
-    color: "#0F172A",
-    fontWeight: "700",
+    fontSize: 24 * scale,
+    fontFamily: "PoppinsSemiBold",
+    color: "#1E293B",
+    fontWeight: "800",
     marginBottom: 10,
     textAlign: "center",
   },
   alertMsgText: {
-    fontSize: 14 * scale,
+    fontSize: 15 * scale,
     fontFamily: "PoppinsMedium",
-    color: "#475569",
+    color: "#64748B",
     textAlign: "center",
-    marginBottom: 25,
+    marginBottom: 30,
     lineHeight: 22 * scale,
   },
   alertBtn: {
     width: "100%",
-    borderRadius: 15,
+    borderRadius: 16,
     overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
   },
   alertBtnGrad: {
-    paddingVertical: 14,
+    paddingVertical: 16,
     alignItems: "center",
   },
   alertBtnText: {
-    fontSize: 15 * scale,
-    fontFamily: "PoppinsBold",
+    fontSize: 16 * scale,
+    fontFamily: "PoppinsSemiBold",
     color: "#FFF",
     fontWeight: "800",
+    letterSpacing: 0.5,
   },
 });
 
@@ -999,7 +1015,7 @@ const cardStyles = StyleSheet.create({
     marginHorizontal: 6, // Maximizing width
     marginVertical: 5,
     borderRadius: 18,
-    // Background provided by LinearGradient child
+    backgroundColor: '#FFFFFF',
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
@@ -1011,9 +1027,9 @@ const cardStyles = StyleSheet.create({
   },
   cardBody: {
     flexDirection: "row",
-    padding: 12, // Reduced padding
-    paddingBottom: 16,
-    minHeight: 180 * scale,
+    padding: 16, // Consistent padding on all sides
+    paddingBottom: 22, // Extra space below tags to prevent cutting
+    minHeight: 185 * scale,
     alignItems: 'flex-start',
   },
   imageContainer: {
@@ -1028,24 +1044,34 @@ const cardStyles = StyleSheet.create({
     backgroundColor: '#F3F4F6',
     position: 'relative', // Ensure absolute children are positioned relative to this or container
   },
-  distanceBadge: {
-    position: 'absolute',
-    bottom: 6,
-    right: 6,
-    backgroundColor: 'rgba(239, 68, 68, 0.9)', // Reddish background
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
+  distanceRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    zIndex: 10,
-    elevation: 2,
+    marginTop: 2,
+    marginBottom: 8,
+    backgroundColor: 'rgba(51, 65, 85, 0.04)',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
-  distanceText: {
-    color: '#FFF',
-    fontSize: 10 * scale,
-    fontFamily: 'PoppinsBold',
-    marginLeft: 3,
+  distanceDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#FF2B5C',
+    marginRight: 6,
+  },
+  distanceLabel: {
+    fontSize: 12 * scale,
+    color: "#64748B",
+    fontFamily: "PoppinsMedium",
+    marginRight: 4,
+  },
+  distanceValue: {
+    fontSize: 13 * scale,
+    color: "#0F172A",
+    fontFamily: "PoppinsBold",
   },
   premiumBadge: {
     position: 'absolute',
@@ -1114,13 +1140,15 @@ const cardStyles = StyleSheet.create({
   serviceRow: {
     flexDirection: "row",
     flexWrap: 'wrap',
-    marginTop: 'auto', // Push to bottom
-    paddingTop: 4,
+    marginTop: 10,
+    marginBottom: 2, // Added small margin below the row itself
   },
   serviceChip: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFF0F3",
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderRadius: 6,

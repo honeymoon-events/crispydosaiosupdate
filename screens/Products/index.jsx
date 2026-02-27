@@ -1014,42 +1014,55 @@ export default function Products({ route, navigation }) {
       </Modal>
 
       {/* Replace Cart Modal */}
-      <Modal visible={replaceModalVisible} transparent animationType="fade" onRequestClose={() => setReplaceModalVisible(false)}>
+      <Modal
+        visible={replaceModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setReplaceModalVisible(false)}
+      >
         <View style={styles.popupOverlay}>
           <View style={styles.replaceBox}>
-            <LinearGradient
-              colors={["#FFF0F1", "#FFE4E6"]}
-              style={styles.popupContent}
-            >
+            <View style={styles.replaceInner}>
               <View style={styles.replaceIconCircle}>
-                <Ionicons name="warning-outline" size={36 * scale} color="#EF4444" />
+                <Ionicons name="cart" size={36 * scale} color="#FB7185" />
               </View>
 
               <Text style={styles.replaceTitle}>Replace Cart Items?</Text>
               <Text style={styles.replaceMessage}>
-                Your cart contains items from another restaurant. Do you want to discard them and start a new order with this restaurant?
+                Your cart contains items from another restaurant. Do you want to discard them
+                and start a new order with this restaurant?
               </Text>
+
               <View style={styles.popupRow}>
                 <TouchableOpacity
-                  style={styles.popupSecondaryBtn}
+                  style={[styles.popupSecondaryBtn, styles.replaceCancelBtn]}
                   onPress={() => setReplaceModalVisible(false)}
+                  activeOpacity={0.8}
                 >
-                  <Text style={styles.popupSecondaryText}>Cancel</Text>
+                  <Text style={[styles.popupSecondaryText, styles.replaceCancelLabel]}>
+                    Cancel
+                  </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   style={styles.replaceConfirmWrap}
-                  onPress={() => { setReplaceModalVisible(false); if (replaceAction) replaceAction(); }}
+                  onPress={() => {
+                    setReplaceModalVisible(false);
+                    if (replaceAction) replaceAction();
+                  }}
+                  activeOpacity={0.9}
                 >
                   <LinearGradient
-                    colors={["#EF4444", "#DC2626"]}
+                    colors={["#FB7185", "#E11D48"]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
                     style={styles.popupPrimaryBtn}
                   >
                     <Text style={styles.popupPrimaryText}>Replace</Text>
                   </LinearGradient>
                 </TouchableOpacity>
               </View>
-            </LinearGradient>
+            </View>
           </View>
         </View>
       </Modal>
@@ -1336,9 +1349,10 @@ const styles = StyleSheet.create({
   },
   qtyText: {
     paddingHorizontal: 14,
-    fontSize: 16 * scale,
+    fontSize: 18 * scale,
     fontFamily: "PoppinsBold",
-    color: "#0F172A",
+    fontWeight: '900',
+    color: "#000000",
     textAlign: 'center',
     minWidth: 40 * scale,
   },
@@ -1438,7 +1452,7 @@ const styles = StyleSheet.create({
   popupBox: {
     width: "90%",
     maxWidth: 400,
-    maxHeight: '80%', // Ensure it doesn't hit screen edges
+    maxHeight: "80%", // Ensure it doesn't hit screen edges
     borderRadius: 30,
     overflow: "hidden",
     elevation: 25,
@@ -1446,28 +1460,27 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.3,
     shadowRadius: 20,
-    backgroundColor: '#fff',
-    alignSelf: 'center',
+    backgroundColor: "#fff",
+    alignSelf: "center",
   },
   replaceBox: {
-    width: "100%",
+    width: "90%",
     maxWidth: 380,
-    borderRadius: 30,
+    borderRadius: 28,
     overflow: "hidden",
     elevation: 25,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.25,
     shadowRadius: 20,
-    backgroundColor: '#fff'
+    backgroundColor: "#FFFFFF",
   },
-  popupContent: {
-    paddingTop: 15 * scale, // Highly reduced
-    paddingBottom: 20 * scale,
-    paddingHorizontal: 24 * scale,
+  replaceInner: {
+    paddingTop: 22 * scale,
+    paddingBottom: 24 * scale,
+    paddingHorizontal: 26 * scale,
     alignItems: "center",
-    width: '100%',
-    backgroundColor: 'transparent',
+    width: "100%",
   },
 
   /* ICONS */
@@ -1475,12 +1488,12 @@ const styles = StyleSheet.create({
     width: 64 * scale,
     height: 64 * scale,
     borderRadius: 32 * scale,
-    backgroundColor: "#FEF2F2",
+    backgroundColor: "rgba(255, 43, 92, 0.1)",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 20,
-    borderWidth: 1,
-    borderColor: "#FEE2E2",
+    borderWidth: 1.5,
+    borderColor: "rgba(255, 43, 92, 0.2)",
   },
   addIconCircle: {
     width: 48 * scale, // Reduced from 64
@@ -1496,20 +1509,28 @@ const styles = StyleSheet.create({
 
   /* HEADERS */
   replaceTitle: {
-    fontSize: 22 * scale,
+    fontSize: 24 * scale,
     fontFamily: 'PoppinsBold',
-    color: '#0F172A',
-    marginBottom: 10,
+    color: '#020617',
+    marginBottom: 12,
     textAlign: "center",
     fontWeight: '900',
   },
   replaceMessage: {
-    fontSize: 15 * scale,
-    fontFamily: 'PoppinsMedium',
-    color: '#475569',
-    lineHeight: 22 * scale,
-    marginBottom: 28,
+    fontSize: 16 * scale,
+    fontFamily: "PoppinsMedium",
+    color: "#111827",
+    lineHeight: 24 * scale,
+    marginBottom: 26,
     textAlign: "center",
+  },
+
+  popupContent: {
+    paddingTop: 22 * scale,
+    paddingBottom: 22 * scale,
+    paddingHorizontal: 24 * scale,
+    alignItems: "center",
+    width: "100%",
   },
 
   popupProductHeader: {
@@ -1574,7 +1595,7 @@ const styles = StyleSheet.create({
     color: "#0F172A",
     marginBottom: 15,
     fontFamily: 'PoppinsMedium',
-    textAlign: 'center',
+    textAlign: 'left',
   },
 
   /* BUTTONS (MATCHING SIGN OUT STYLE) */
@@ -1609,6 +1630,14 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 12,
     overflow: "hidden",
+  },
+  replaceCancelBtn: {
+    backgroundColor: "#F9FAFB",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  replaceCancelLabel: {
+    color: "#0F172A",
   },
   popupPrimaryBtn: {
     height: 46 * scale, // Reduced from 54

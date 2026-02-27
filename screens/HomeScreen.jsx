@@ -17,6 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import { Alert, Modal } from "react-native";
+import { logoutUser } from "../utils/authHelpers";
 
 const { width, height } = Dimensions.get("window");
 const isVerySmallScreen = height <= 640;
@@ -58,14 +59,7 @@ export default function HomeScreen({ navigation }) {
 
   const confirmLogout = async () => {
     setLogoutModalVisible(false);
-    await AsyncStorage.multiRemove([
-      "token",
-      "user",
-      "profile_cache",
-      "wallet_summary_cache",
-    ]);
-    setIsLoggedIn(false);
-    // Optional: show a small toast or success alert if needed
+    await logoutUser(navigation);
   };
 
   const cancelLogout = () => {
@@ -459,12 +453,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 16,
-    backgroundColor: "#EF4444",
+    backgroundColor: "#FEF2F2",
+    borderWidth: 1,
+    borderColor: "#FEE2E2",
   },
   confirmLogoutText: {
-    fontSize: 15 * scale,
+    fontSize: 18 * scale,
+    fontFamily: "PoppinsBold",
     fontWeight: "900",
-    color: "#FFFFFF",
+    color: "#EF4444",
     textAlign: "center",
   },
 });
