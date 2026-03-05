@@ -6,7 +6,6 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StripeProvider } from "@stripe/stripe-react-native";
-import { STRIPE_PUBLISHABLE_KEY } from "@env";
 
 import SplashScreen from "./screens/SplashScreen.jsx";
 import HomeScreen from "./screens/HomeScreen.jsx";
@@ -34,6 +33,16 @@ const Stack = createNativeStackNavigator();
 
 export default function App() {
   const [isOffline, setIsOffline] = useState(false);
+  const [stripeKey, setStripeKey] = useState("");
+
+  // ===============================
+  // 🔑 STRIPE DYNAMIC KEY
+  // ===============================
+  useEffect(() => {
+    global.updateStripeKey = (newKey) => {
+      setStripeKey(newKey);
+    };
+  }, []);
 
   // ===============================
   // 🌐 NETWORK STATUS
@@ -59,7 +68,6 @@ export default function App() {
   // ===============================
   // 🚀 MAIN APP
   // ===============================
-  const stripeKey = STRIPE_PUBLISHABLE_KEY || "pk_test_default";
 
   return (
     <StripeProvider publishableKey={stripeKey}>

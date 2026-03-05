@@ -29,6 +29,7 @@ import { createOrder } from "../services/orderService";
 import { getWalletSummary } from "../services/walletService";
 import { useStripe } from "@stripe/stripe-react-native";
 import { API_BASE_URL } from "../config/baseURL";
+import { fetchStripeKey } from "../services/restaurantService";
 
 const { width, height } = Dimensions.get("window");
 const scale = width / 400;
@@ -60,6 +61,7 @@ export default function CheckoutScreen({ navigation }) {
   const [loyaltyUsed, setLoyaltyUsed] = useState(0);
   const [useLoyalty, setUseLoyalty] = useState(false);
   const [earnedPoints, setEarnedPoints] = useState(0);
+  const [stripeConfigured, setStripeConfigured] = useState(true);
 
   // Premium Alert State
   const [alertVisible, setAlertVisible] = useState(false);
@@ -245,15 +247,18 @@ export default function CheckoutScreen({ navigation }) {
   };
 
   const preparePayment = async () => {
-    if (!user) return;
+    if (!user || cart.length === 0) return;
     try {
       const amount = getFinalTotal();
       if (amount <= 0) return;
 
+      const restaurant_id = cart[0]?.restaurant_id;
+      if (!restaurant_id) return;
+
       const res = await fetch(`${API_BASE_URL}/stripe/create-payment-intent`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount }),
+        body: JSON.stringify({ amount, restaurant_id, currency: 'gbp' }),
       });
 
       const data = await res.json();
@@ -270,10 +275,29 @@ export default function CheckoutScreen({ navigation }) {
   };
 
   useEffect(() => {
-    if (isFocused && user && cart.length > 0) {
+    if (isFocused && cart.length > 0) {
+      const restaurant_id = cart[0]?.restaurant_id || cart[0]?.user_id;
+      if (restaurant_id) {
+        (async () => {
+          const key = await fetchStripeKey(restaurant_id);
+          if (key) {
+            global.updateStripeKey(key);
+            setStripeConfigured(true);
+            preparePayment(); // Re-prepare after key update
+          } else {
+            setStripeConfigured(false);
+            showPremiumAlert("Payments Unavailable", "This restaurant has not configured Stripe.", "error");
+          }
+        })();
+      }
+    }
+  }, [isFocused, cart]);
+
+  useEffect(() => {
+    if (isFocused && user && cart.length > 0 && stripeConfigured) {
       preparePayment();
     }
-  }, [isFocused, user, cart, useWallet, useLoyalty]);
+  }, [isFocused, user, cart, useWallet, useLoyalty, stripeConfigured]);
 
   const placeOrder = async () => {
     if (processingPayment) return;
@@ -293,14 +317,15 @@ export default function CheckoutScreen({ navigation }) {
       // If intent not ready or amount changed, fetch fresh one
       if (!activeIntent || activeIntent.amount !== getFinalTotal()) {
         const amount = getFinalTotal();
+        const restaurant_id = cart[0]?.restaurant_id || cart[0]?.user_id;
         const res = await fetch(`${API_BASE_URL}/stripe/create-payment-intent`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ amount }),
+          body: JSON.stringify({ amount, restaurant_id, currency: 'gbp' }),
         });
         activeIntent = await res.json();
         if (!activeIntent.clientSecret) {
-          showPremiumAlert("Payment Error", "Payment initialization failed. Please try again.", "error");
+          showPremiumAlert("Payment Error", activeIntent.message || "Payment initialization failed. Please try again.", "error");
           setProcessingPayment(false);
           return;
         }
@@ -581,9 +606,9 @@ export default function CheckoutScreen({ navigation }) {
           <View style={[styles.stickyFooter, { bottom: insets.bottom + 10 }]}>
             <TouchableOpacity
               activeOpacity={0.9}
-              style={styles.actionBtnPremium}
+              style={[styles.actionBtnPremium, !stripeConfigured && { opacity: 0.5 }]}
               onPress={placeOrder}
-              disabled={processingPayment}
+              disabled={processingPayment || !stripeConfigured}
             >
               <LinearGradient
                 colors={["#16a34a", "#15803d"]}
@@ -753,36 +778,43 @@ export default function CheckoutScreen({ navigation }) {
       <Modal visible={alertVisible} transparent animationType="fade">
         <View style={styles.alertOverlay}>
           <Animated.View style={[styles.alertCard, { transform: [{ scale: alertScale }] }]}>
-            <LinearGradient
-              colors={alertType === 'error' ? ["#FFFFFF", "#FFF5F5"] : ["#FFFFFF", "#F0FDF4"]}
-              style={styles.alertContent}
-            >
-              <View style={[styles.alertIconRing, { backgroundColor: alertType === 'error' ? '#FEE2E2' : '#DCFCE7' }]}>
+            <View style={styles.alertContent}>
+              {/* Vibrant Icon Ring */}
+              <View style={[
+                styles.alertIconRing,
+                { backgroundColor: alertType === 'error' ? '#EF4444' : '#16A34A' }
+              ]}>
                 <Ionicons
-                  name={alertType === 'error' ? "close-circle" : "information-circle"}
-                  size={46 * scale}
-                  color={alertType === 'error' ? "#EF4444" : "#16A34A"}
+                  name={alertType === 'error' ? "close" : "information"}
+                  size={42 * scale}
+                  color="#FFFFFF"
                 />
               </View>
+
               <Text style={styles.alertTitleText}>{alertTitle}</Text>
-              <Text style={styles.alertMsgText}>{alertMsg}</Text>
+
+              <View style={styles.alertMsgContainer}>
+                <Text style={styles.alertMsgText}>{alertMsg}</Text>
+              </View>
+
               <TouchableOpacity style={styles.alertBtn} onPress={hidePremiumAlert} activeOpacity={0.8}>
                 <LinearGradient
-                  colors={alertType === 'error' ? ["#EF4444", "#B91C1C"] : ["#16A34A", "#15803D"]}
+                  colors={alertType === 'error' ? ["#EF4444", "#DC2626"] : ["#16A34A", "#15803D"]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={styles.alertBtnGrad}
                 >
-                  <Text style={styles.alertBtnText}>Ok</Text>
+                  <Text style={styles.alertBtnText}>Got it</Text>
                 </LinearGradient>
               </TouchableOpacity>
-            </LinearGradient>
+            </View>
           </Animated.View>
         </View>
       </Modal>
-    </SafeAreaView >
+    </SafeAreaView>
   );
 }
+
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#F8FAFC" },
@@ -1186,67 +1218,80 @@ const styles = StyleSheet.create({
   /* ALERT STYLES */
   alertOverlay: {
     flex: 1,
-    backgroundColor: "rgba(15,23,42,0.65)",
+    backgroundColor: "rgba(15,23,42,0.75)",
     justifyContent: "center",
     alignItems: "center",
+    paddingHorizontal: 20,
   },
   alertCard: {
-    width: "82%",
-    borderRadius: 30,
+    width: "100%",
+    maxWidth: 340,
+    borderRadius: 28,
+    backgroundColor: "#FFFFFF",
     overflow: "hidden",
-    elevation: 20,
+    elevation: 25,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.25,
-    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 15 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
   },
   alertContent: {
-    padding: 32,
+    paddingTop: 40,
+    paddingBottom: 30,
+    paddingHorizontal: 24,
     alignItems: "center",
   },
   alertIconRing: {
-    width: 86 * scale,
-    height: 86 * scale,
-    borderRadius: 43 * scale,
+    width: 72 * scale,
+    height: 72 * scale,
+    borderRadius: 36 * scale,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 22,
+    marginBottom: 20,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
   },
   alertTitleText: {
-    fontSize: 24 * scale,
-    fontFamily: "PoppinsSemiBold",
-    color: "#1E293B",
+    fontSize: 22 * scale,
+    fontFamily: "PoppinsBold",
+    color: "#0F172A",
     fontWeight: "800",
-    marginBottom: 10,
+    marginBottom: 12,
     textAlign: "center",
+  },
+  alertMsgContainer: {
+    width: '100%',
+    marginBottom: 26,
   },
   alertMsgText: {
     fontSize: 15 * scale,
     fontFamily: "PoppinsMedium",
-    color: "#64748B",
+    color: "#475569",
     textAlign: "center",
-    marginBottom: 30,
     lineHeight: 22 * scale,
   },
   alertBtn: {
     width: "100%",
     borderRadius: 16,
+    marginTop: 15,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
   },
   alertBtnGrad: {
-    paddingVertical: 16,
+    paddingVertical: 18,
+    minHeight: 56,
     alignItems: "center",
+    justifyContent: "center",
   },
   alertBtnText: {
-    fontSize: 16 * scale,
-    fontFamily: "PoppinsSemiBold",
-    color: "#FFF",
+    fontSize: 16,
+    color: "#FFFFFF",
+    fontFamily: "PoppinsBold",
     fontWeight: "800",
-    letterSpacing: 0.5,
+    textAlign: "center",
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
   },
 });

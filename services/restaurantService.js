@@ -55,3 +55,16 @@ export const fetchRestaurantTimings = async (restaurantId) => {
     return [];
   }
 };
+
+export const fetchStripeKey = async (restaurantId) => {
+  try {
+    const res = await api.get(`/stripe/restaurant-key?restaurant_id=${restaurantId}`);
+    if (res.data.status === 1) {
+      return res.data.publishableKey;
+    }
+    return null;
+  } catch (error) {
+    console.log("Fetch Stripe Key Error:", error.response?.data || error.message);
+    return null;
+  }
+};

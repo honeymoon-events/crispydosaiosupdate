@@ -135,7 +135,7 @@ export default function CartSummary({ navigation }) {
       } else {
         await addToCart({
           customer_id: customerId,
-          user_id: parsedUser.id, // Current implementation uses customer ID here, keeping as is
+          user_id: restaurantId,
           product_id: item.product_id,
           product_name: item.product_name,
           product_price: item.product_price,

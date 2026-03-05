@@ -169,6 +169,7 @@ export default function Products({ route, navigation }) {
             res.data.forEach((i) => {
               if (i.product_quantity > 0) map[i.product_id] = i.product_quantity;
             });
+            console.log("Loaded cart from server:", map);
             setCartItems(map);
             return;
           }
@@ -177,6 +178,16 @@ export default function Products({ route, navigation }) {
         const stored = await AsyncStorage.getItem("cart");
         if (stored) {
           const parsed = JSON.parse(stored);
+          // Cleanup empty restaurants from storage
+          let cleaned = false;
+          Object.keys(parsed).forEach(rid => {
+            if (!parsed[rid] || Object.keys(parsed[rid]).length === 0 || Object.values(parsed[rid]).every(q => q <= 0)) {
+              delete parsed[rid];
+              cleaned = true;
+            }
+          });
+          if (cleaned) await AsyncStorage.setItem("cart", JSON.stringify(parsed));
+
           setCartItems(parsed[userId] || {});
         }
       } catch (e) {
@@ -490,7 +501,7 @@ export default function Products({ route, navigation }) {
       const otherRestaurants = Object.keys(parsed).filter(rid => rid != userId);
       const hasConflict = otherRestaurants.some(rid => {
         const items = parsed[rid];
-        return Object.values(items).some(qty => qty > 0);
+        return items && typeof items === 'object' && Object.values(items).some(qty => qty > 0);
       });
 
       if (hasConflict) {
@@ -599,8 +610,9 @@ export default function Products({ route, navigation }) {
     if (prod && user) {
       // If this product was locally added (pending), send full quantity to server now.
       if (pending[pid]) {
-        await addToCart({
-          customer_id: user.id,
+        console.log("Syncing pending item to server:", pid, "qty:", cartItems[pid]);
+        const res = await addToCart({
+          customer_id: user.id || user.customer_id,
           user_id: prod.user_id,
           product_id: prod.id,
           product_name: prod.name,
@@ -609,6 +621,13 @@ export default function Products({ route, navigation }) {
           product_quantity: cartItems[pid],
           textfield: noteInput || "",
         });
+
+        if (res?.status !== 1) {
+          console.warn("Failed to sync item to server:", res?.message);
+          // Optional: Show alert to user
+          // Alert.alert("Sync Error", "Failed to add item to server cart. Please check your connection.");
+        }
+
         // clear pending flag for this item
         setPending((s) => {
           const n = { ...s };
