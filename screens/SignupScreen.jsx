@@ -23,6 +23,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { registerUser } from "../services/authService";
 import { fetchRestaurants } from "../services/restaurantService";
+import { useSettings } from "../context/SettingsContext";
+
 
 const { width } = Dimensions.get("window");
 const scale = width / 400;
@@ -87,11 +89,14 @@ export default function SignupScreen({ navigation }) {
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const [bannerIndex, setBannerIndex] = useState(0);
 
+  const { settings } = useSettings();
+
   const banners = [
-    { text: "EARN £0.25 ON EVERY ORDER", colors: ["#FF416C", "#FF4B2B"], icon: "flash" },
-    { text: "REFER & EARN £0.25", colors: ["#1D976C", "#93F9B9"], icon: "leaf" },
-    { text: "£0.25 WELCOME BONUS", colors: ["#F2994A", "#F2C94C"], icon: "wallet" },
+    { text: `EARN £${settings.earn_per_order_amount} ON EVERY ORDER`, colors: ["#FF416C", "#FF4B2B"], icon: "flash" },
+    { text: `REFER & EARN £${settings.referral_bonus_amount}`, colors: ["#1D976C", "#93F9B9"], icon: "leaf" },
+    { text: `£${settings.signup_bonus_amount} WELCOME BONUS`, colors: ["#F2994A", "#F2C94C"], icon: "wallet" },
   ];
+
 
   useEffect(() => {
     const animate = () => {

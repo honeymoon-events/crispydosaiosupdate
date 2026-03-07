@@ -32,6 +32,8 @@ import {
 import { getCart } from "../../services/cartService";
 import { RefreshControl } from "react-native";
 import useRefresh from "../../hooks/useRefresh";
+import { useSettings } from "../../context/SettingsContext";
+
 
 
 const { width } = Dimensions.get("window");
@@ -61,11 +63,14 @@ export default function Categories({ route, navigation }) {
     { colors: ["#F2994A", "#F2C94C"], textColor: "#5D4037", icon: "wallet" },
   ];
   const [activeIndex, setActiveIndex] = useState(0);
+  const { settings } = useSettings();
+
   const animatedTexts = [
-    "EARN £0.25 ON EVERY ORDER",
-    "REFER & EARN £0.25",
-    "£0.25 WELCOME BONUS",
+    `EARN £${settings.earn_per_order_amount} ON EVERY ORDER`,
+    `REFER & EARN £${settings.referral_bonus_amount}`,
+    `£${settings.signup_bonus_amount} WELCOME BONUS`,
   ];
+
   const formatTime = (t) => (!t ? "" : t.slice(0, 5));
 
   // offer text animation
@@ -357,7 +362,8 @@ export default function Categories({ route, navigation }) {
     : "Loading...";
 
   const highlightAmount = (text) => {
-    const regex = /(£\s?0\.25|£0\.25)/i;
+    const regex = /(£\s?\d+\.?\d*)/i;
+
     const parts = text.split(regex);
 
     return (

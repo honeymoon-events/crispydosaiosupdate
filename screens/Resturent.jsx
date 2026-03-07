@@ -24,6 +24,8 @@ import LinearGradient from "react-native-linear-gradient";
 import { useIsFocused } from "@react-navigation/native";
 import useRefresh from "../hooks/useRefresh";
 import Geolocation from 'react-native-geolocation-service';
+import { useSettings } from "../context/SettingsContext";
+
 
 import AppHeader from "./AppHeader";
 import BottomBar from "./BottomBar";
@@ -132,10 +134,12 @@ export default function Resturent({ navigation }) {
 
   const scrollX = useRef(new Animated.Value(0)).current;
 
+  const { settings } = useSettings();
+
   const offers = [
     {
       title: "SIGNUP BONUS",
-      subtitle: "EARN £0.25 COMPLETELY FREE",
+      subtitle: `EARN £${settings.signup_bonus_amount} COMPLETELY FREE`,
       desc: "Register now and get instant credit in your wallet.",
       icon: "gift-outline",
       colors: ["#FF416C", "#FF4B2B"], // Red
@@ -144,7 +148,7 @@ export default function Resturent({ navigation }) {
     },
     {
       title: "LOYALTY REWARDS",
-      subtitle: "EARN £0.25 ON EVERY ORDER",
+      subtitle: `EARN £${settings.earn_per_order_amount} ON EVERY ORDER`,
       desc: "Order your favorite food and get cashback every time.",
       icon: "ribbon-outline",
       colors: ["#1D976C", "#93F9B9"], // Green
@@ -153,7 +157,7 @@ export default function Resturent({ navigation }) {
     },
     {
       title: "REFER & EARN",
-      subtitle: "EARN £0.25 PER FRIEND",
+      subtitle: `EARN £${settings.referral_bonus_amount} PER FRIEND`,
       desc: "Invite your friends and earn rewards when they join.",
       icon: "people-outline",
       colors: ["#F2994A", "#F2C94C"], // Gold
@@ -161,6 +165,7 @@ export default function Resturent({ navigation }) {
       badgeColor: "rgba(93,64,55,0.15)",
     },
   ];
+
 
   // Load User
   useEffect(() => {

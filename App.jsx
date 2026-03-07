@@ -6,6 +6,8 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StripeProvider } from "@stripe/stripe-react-native";
+import { SettingsProvider } from "./context/SettingsContext";
+
 
 import SplashScreen from "./screens/SplashScreen.jsx";
 import HomeScreen from "./screens/HomeScreen.jsx";
@@ -70,33 +72,36 @@ export default function App() {
   // ===============================
 
   return (
-    <StripeProvider publishableKey={stripeKey}>
-      <SafeAreaProvider>
-        <NavigationContainer>
-          <Stack.Navigator screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="Splash" component={SplashScreen} />
-            <Stack.Screen name="Home" component={HomeScreen} />
-            <Stack.Screen name="Resturent" component={Resturent} />
-            <Stack.Screen name="Categories" component={Categories} />
-            <Stack.Screen name="Products" component={Products} />
-            <Stack.Screen name="CartSummary" component={CartSummary} />
-            <Stack.Screen name="CheckoutScreen" component={CheckoutScreen} />
-            <Stack.Screen name="Orders" component={Orders} />
-            <Stack.Screen name="Login" component={LoginScreen} />
-            <Stack.Screen name="Signup" component={SignupScreen} />
-            <Stack.Screen name="Credits" component={Credits} />
-            <Stack.Screen name="Profile" component={Profile} />
-            <Stack.Screen name="PaymentHistory" component={PaymentHistory} />
-            <Stack.Screen name="FAQ" component={FAQ} />
-            <Stack.Screen name="InviteFriends" component={InviteFriends} />
-            <Stack.Screen name="EditProfile" component={EditProfile} />
-            <Stack.Screen name="HelpCenter" component={HelpCenter} />
-            <Stack.Screen name="Notifications" component={Notifications} />
-            <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
-            <Stack.Screen name="TermsConditions" component={TermsConditionsScreen} />
-          </Stack.Navigator>
-        </NavigationContainer>
-      </SafeAreaProvider>
-    </StripeProvider>
+    <SettingsProvider>
+      <StripeProvider publishableKey={stripeKey}>
+        <SafeAreaProvider>
+          <NavigationContainer>
+            <Stack.Navigator screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="Splash" component={SplashScreen} />
+              <Stack.Screen name="Home" component={HomeScreen} />
+              <Stack.Screen name="Resturent" component={Resturent} />
+              <Stack.Screen name="Categories" component={Categories} />
+              <Stack.Screen name="Products" component={Products} />
+              <Stack.Screen name="CartSummary" component={CartSummary} />
+              <Stack.Screen name="CheckoutScreen" component={CheckoutScreen} />
+              <Stack.Screen name="Orders" component={Orders} />
+              <Stack.Screen name="Login" component={LoginScreen} />
+              <Stack.Screen name="Signup" component={SignupScreen} />
+              <Stack.Screen name="Credits" component={Credits} />
+              <Stack.Screen name="Profile" component={Profile} />
+              <Stack.Screen name="PaymentHistory" component={PaymentHistory} />
+              <Stack.Screen name="FAQ" component={FAQ} />
+              <Stack.Screen name="InviteFriends" component={InviteFriends} />
+              <Stack.Screen name="EditProfile" component={EditProfile} />
+              <Stack.Screen name="HelpCenter" component={HelpCenter} />
+              <Stack.Screen name="Notifications" component={Notifications} />
+              <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+              <Stack.Screen name="TermsConditions" component={TermsConditionsScreen} />
+            </Stack.Navigator>
+          </NavigationContainer>
+        </SafeAreaProvider>
+      </StripeProvider>
+    </SettingsProvider>
   );
+
 }

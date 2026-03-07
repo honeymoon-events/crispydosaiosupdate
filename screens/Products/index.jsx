@@ -31,6 +31,8 @@ import AppHeader from "../AppHeader";
 import BottomBar from "../BottomBar";
 import MenuModal from "../MenuModal";
 import LinearGradient from "react-native-linear-gradient";
+import { useSettings } from "../../context/SettingsContext";
+
 
 const { width } = Dimensions.get("window");
 const scale = width / 400;
@@ -78,14 +80,18 @@ export default function Products({ route, navigation }) {
     { colors: ["#F2994A", "#F2C94C"], textColor: "#5D4037", icon: "wallet" },
   ];
   const [activeIndex, setActiveIndex] = useState(0);
+  const { settings } = useSettings();
+
   const animatedTexts = [
-    "EARN £0.25 ON EVERY ORDER",
-    "REFER & EARN £0.25",
-    "£0.25 WELCOME BONUS",
+    `EARN £${settings.earn_per_order_amount} ON EVERY ORDER`,
+    `REFER & EARN £${settings.referral_bonus_amount}`,
+    `£${settings.signup_bonus_amount} WELCOME BONUS`,
   ];
 
+
   const highlightAmount = (text) => {
-    const regex = /(£\s?0\.25|£0\.25)/i;
+    const regex = /(£\s?\d+\.?\d*)/i;
+
     const parts = text.split(regex);
 
     return (

@@ -11,6 +11,8 @@ import AppHeader from "./AppHeader";
 import BottomBar from "./BottomBar";
 import MenuModal from "./MenuModal";
 import { getCart, addToCart, removeFromCart } from "../services/cartService";
+import { useSettings } from "../context/SettingsContext";
+
 
 const { width } = Dimensions.get("window");
 const scale = width / 400;
@@ -22,6 +24,8 @@ export default function CartSummary({ navigation }) {
   const [updating, setUpdating] = useState({});
   const [loadingCart, setLoadingCart] = useState(true);
   const [menuVisible, setMenuVisible] = useState(false);
+  const { settings } = useSettings();
+
 
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
@@ -358,23 +362,30 @@ export default function CartSummary({ navigation }) {
       {/* STICKY PLACE ORDER BAR - MATCHING PRODUCTS SCREEN FLOATING STYLE */}
       {!loadingCart && products.length > 0 && (
         <View style={[styles.stickyFooter, { bottom: insets.bottom + 10 }]}>
-          <TouchableOpacity
-            activeOpacity={0.9}
-            style={styles.stickyBtnWrap}
-            onPress={() => navigation.navigate("CheckoutScreen")}
-          >
-            <LinearGradient
-              colors={["#16a34a", "#15803d"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.stickyBtn}
+          {Number(grandTotal) < Number(settings.minimum_order) ? (
+            <View style={[styles.stickyBtn, { backgroundColor: '#CCC', opacity: 0.8 }]}>
+              <Text style={styles.stickyBtnText}>Min Order £{settings.minimum_order}</Text>
+            </View>
+          ) : (
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={styles.stickyBtnWrap}
+              onPress={() => navigation.navigate("CheckoutScreen")}
             >
-              <Text style={styles.stickyBtnText}>Proceed to Checkout</Text>
-              <Ionicons name="arrow-forward" size={20} color="#FFF" style={{ marginLeft: 10 }} />
-            </LinearGradient>
-          </TouchableOpacity>
+              <LinearGradient
+                colors={["#16a34a", "#15803d"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.stickyBtn}
+              >
+                <Text style={styles.stickyBtnText}>Proceed to Checkout</Text>
+                <Ionicons name="arrow-forward" size={20} color="#FFF" style={{ marginLeft: 10 }} />
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
         </View>
       )}
+
 
       <MenuModal
         visible={menuVisible}
