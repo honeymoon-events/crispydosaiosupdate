@@ -24,9 +24,9 @@ export default function BottomBar({ navigation }) {
       </TouchableOpacity>
 
       {/* QR SCAN */}
-      <TouchableOpacity style={styles.qrButton} onPress={() => navigation.navigate("Scanner")}>
+      {/* <TouchableOpacity style={styles.qrButton} onPress={() => navigation.navigate("Scanner")}>
         <Ionicons name="qr-code-outline" size={26 * scale} color="#fff" />
-      </TouchableOpacity>
+      </TouchableOpacity> */}
 
       {/* CREDITS */}
       <TouchableOpacity style={styles.tabButton} onPress={() => navigation.navigate("Credits")}>
