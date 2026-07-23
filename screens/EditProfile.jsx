@@ -13,8 +13,8 @@ import {
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import api from "../config/api";
 import { fetchRestaurants } from "../services/restaurantService";
+import { fetchProfile, updateProfileData } from "../services/profileService";
 
 export default function EditProfile({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -54,8 +54,7 @@ export default function EditProfile({ navigation }) {
 
   const loadProfile = async () => {
     try {
-      const res = await api.get("/profile");
-      const data = res.data?.data || res.data;
+      const data = await fetchProfile();
       if (data) {
         setForm({
           full_name: data.full_name || "",
@@ -80,7 +79,7 @@ export default function EditProfile({ navigation }) {
 
     try {
       setSaving(true);
-      await api.put("/profile", {
+      await updateProfileData({
         full_name: form.full_name,
         gender: form.gender,
         date_of_birth: form.date_of_birth,

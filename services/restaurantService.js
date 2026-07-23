@@ -1,26 +1,28 @@
 // restaurantService.js
-import api from "../config/api";
+import firestore from '@react-native-firebase/firestore';
+import { resolveImageSource } from '../utils/imageHelpers';
 
 // Fetch all restaurants
-export const fetchRestaurants = async () => {
+export const fetchRestaurants = async (lat, lng) => {
   try {
-    const res = await api.get("/restaurants");
-    if (res.data.status === 1) {
-      return res.data.data.map(r => ({
-        id: r.id,
-        userId: r.userid,
-        name: r.name,
-        address: r.address,
-        photo: r.photo ? r.photo.replace("http://", "https://") : r.photo,
-        instore: r.instore,
-        kerbside: r.kerbside,
-        latitude: r.latitude,
-        longitude: r.longitude,
-      }));
-    }
-    return [];
+    const snapshot = await firestore().collection('restaurant').get();
+    return snapshot.docs.map(doc => {
+      const restaurant = doc.data();
+      console.log('[Image debug][restaurant]', restaurant.restaurant_photo || restaurant.photo || '');
+      const photoSource = resolveImageSource(restaurant.restaurant_photo || restaurant.photo || '');
+      return {
+        id: doc.id,
+        userId: restaurant.user_id || doc.id,
+        name: restaurant.restaurant_name || restaurant.name || "Crispy Dosa",
+        address: restaurant.restaurant_address || restaurant.address || "",
+        photo: photoSource?.uri || '',
+        instore: restaurant.instore || 0,
+        kerbside: restaurant.kerbside || 0,
+        distance: 0,
+      };
+    });
   } catch (error) {
-    console.log("Restaurant API Error:", error.response?.data || error.message);
+    console.error("Restaurant API Error:", error);
     return [];
   }
 };
@@ -28,43 +30,42 @@ export const fetchRestaurants = async () => {
 // Fetch single restaurant by userId
 export const fetchRestaurantDetails = async (userId) => {
   try {
-    const res = await api.get(`/restaurant/${userId}`);
-    if (res.data.status === 1 && res.data.data.length > 0) {
-      const restaurant = res.data.data[0];
-      if (restaurant.restaurant_photo) {
-        restaurant.restaurant_photo = restaurant.restaurant_photo.replace("http://", "https://");
-      }
-      return restaurant;
+    const doc = await firestore().collection('restaurant').doc(String(userId)).get();
+    if (doc.exists) {
+      const restaurant = doc.data();
+      const photoSource = resolveImageSource(restaurant.restaurant_photo || restaurant.photo || '');
+      return {
+        id: doc.id,
+        ...restaurant,
+        restaurant_photo: photoSource?.uri || '',
+        photo: photoSource?.uri || '',
+      };
     }
     return null;
   } catch (error) {
-    console.log("Restaurant Details API Error:", error.response?.data || error.message);
+    console.error("Restaurant Details API Error:", error);
     return null;
   }
 };
 
 export const fetchRestaurantTimings = async (restaurantId) => {
   try {
-    const res = await api.get(`/restaurant-timings/${restaurantId}`);
-    if (res.data.status === 1) {
-      return res.data.data; // array of timings
-    }
+    const doc = await firestore().collection('restaurant').doc(String(restaurantId)).get();
+    if (doc.exists && doc.data().timings) return doc.data().timings;
     return [];
   } catch (error) {
-    console.log("Fetch Timings Error:", error.response?.data || error.message);
+    console.error("Fetch Timings Error:", error);
     return [];
   }
 };
 
 export const fetchStripeKey = async (restaurantId) => {
   try {
-    const res = await api.get(`/stripe/restaurant-key?restaurant_id=${restaurantId}`);
-    if (res.data.status === 1) {
-      return res.data.publishableKey;
-    }
+    const doc = await firestore().collection('restaurant').doc(String(restaurantId)).get();
+    if (doc.exists && doc.data().stripe_publishable_key) return doc.data().stripe_publishable_key;
     return null;
   } catch (error) {
-    console.log("Fetch Stripe Key Error:", error.response?.data || error.message);
+    console.error("Fetch Stripe Key Error:", error);
     return null;
   }
 };

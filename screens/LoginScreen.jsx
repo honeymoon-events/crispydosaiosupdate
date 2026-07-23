@@ -20,6 +20,8 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { loginUser } from "../services/authService";
+import messaging from "@react-native-firebase/messaging";
+import { saveFcmToken } from "../services/notificationService";
 
 const { width } = Dimensions.get("window");
 const scale = width / 400;
@@ -84,11 +86,12 @@ export default function LoginScreen({ navigation }) {
       await AsyncStorage.setItem("token", token);
       await AsyncStorage.setItem("user", JSON.stringify(user));
 
-      /* =======================
-        🔔 STEP 6.3 – FCM TOKEN (Disabled)
-      ======================= */
-      // FCM token retrieval disabled - Firebase messaging removed
-      /* ======================= */
+      const fcmToken = await messaging().getToken();
+      await saveFcmToken({
+        userType: "customer",
+        userId: user.id || user.customer_id,
+        token: fcmToken,
+      });
 
 
       showPremiumAlert("Logged In!", `Welcome back, ${user.full_name}!`, "success");

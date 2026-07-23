@@ -10,6 +10,7 @@ import Geolocation from 'react-native-geolocation-service';
 import { Platform, PermissionsAndroid, Alert } from 'react-native';
 import axios from 'axios';
 import { VITE_GOOGLE_MAPS_API_KEY } from '@env';
+import messaging from "@react-native-firebase/messaging";
 
 const { width } = Dimensions.get("window");
 // Scale factor for responsiveness
@@ -121,9 +122,12 @@ export default function AppHeader({ user, onMenuPress, navigation, cartItems, tr
     }
   }, [user]);
 
-  // LIVE LISTENER for header badge (Firebase disabled)
+  // LIVE LISTENER for header badge
   useEffect(() => {
-    // FCM listener disabled
+    const unsubscribe = messaging().onMessage(async () => {
+      fetchUnreadCount();
+    });
+    return unsubscribe;
   }, [fetchUnreadCount]);
 
 

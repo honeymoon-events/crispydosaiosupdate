@@ -1,34 +1,34 @@
-import api from "../config/api";
+import firestore from '@react-native-firebase/firestore';
+import { resolveImageSource } from '../utils/imageHelpers';
 
 export const fetchProducts = async (userId, categoryId) => {
   try {
-    const res = await api.get(`/products?user_id=${userId}&cat_id=${categoryId}`);
-
-    if (res.data.status === 1) {
-      return res.data.data
-        .map(product => {
-          // Robust parsing for 'contains' field matching dashboard logic
+    const snapshot = await firestore().collection('products')
+      .where('user_id', 'in', [Number(userId), String(userId)])
+      .where('cat_id', '==', String(categoryId)).get();
+    return snapshot.docs.map(doc => {
+          const product = doc.data();
           let c = product.contains;
           try {
             if (typeof c === 'string') c = JSON.parse(c);
-            if (typeof c === 'string') c = JSON.parse(c); // Handle double-serialization
-          } catch (e) {
-            console.warn("Error parsing product contains:", e);
-          }
+            if (typeof c === 'string') c = JSON.parse(c);
+          } catch (e) {}
+
+          console.log('[Image debug][product]', product.image || product.product_image || product.image_url || '');
+          const imageSource = resolveImageSource(product.image || product.product_image || product.image_url || '');
 
           return {
+            id: doc.id,
             ...product,
-            image: product.image ? product.image.replace("http://", "https://") : product.image,
+            name: product.name || product.product_name || "Unknown Product",
             contains: Array.isArray(c) ? c : [],
             restaurantId: product.user_id,
+            sort_order: Number(product.sort_order || 0),
+            image: imageSource?.uri || '',
           };
-        })
-        .sort((a, b) => a.sort_order - b.sort_order);  // 🟢 IMPORTANT
-    }
-
-    return [];
+        }).sort((a, b) => a.sort_order - b.sort_order);
   } catch (err) {
-    console.log("Product Service Error:", err.response?.data || err);
+    console.log("Product Firestore Error:", err);
     return [];
   }
 };

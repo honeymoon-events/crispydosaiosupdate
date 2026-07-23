@@ -148,9 +148,6 @@ export default function SignupScreen({ navigation }) {
     if (!preferredRestaurant) {
       return Alert.alert("Required", "Select your preferred restaurant.");
     }
-    if (!dob || !(dob instanceof Date)) {
-      return Alert.alert("Required", "Please select a valid Date of Birth.");
-    }
     if (!termsAccepted) {
       return Alert.alert("Required", "Please accept Terms & Conditions.");
     }
@@ -162,7 +159,7 @@ export default function SignupScreen({ navigation }) {
       country_code: `+${callingCode}`,
       password,
       preferred_restaurant: preferredRestaurant,
-      date_of_birth: dob.toISOString().split("T")[0],
+      date_of_birth: dob ? dob.toISOString().split("T")[0] : "",
       referral_code: trimmedReferral || "",
       gender: gender || "",
     };
@@ -268,8 +265,8 @@ export default function SignupScreen({ navigation }) {
           <SignupInput label="Confirm Password" icon="lock-closed-outline" placeholder="••••••••" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry />
 
           <SignupSelect label="Preferred Restaurant" icon="restaurant-outline" value={preferredRestaurant || "Select Restaurant"} onPress={() => openPicker("restaurant")} />
-          <SignupSelect label="Date of Birth" icon="calendar-outline" value={dob ? dob.toLocaleDateString("en-GB") : "Select Date"} onPress={() => setShowDobPicker(true)} />
-          <SignupSelect label="Gender" icon="male-female-outline" value={gender ? gender.charAt(0).toUpperCase() + gender.slice(1) : "Select Gender"} onPress={() => openPicker("gender")} />
+          <SignupSelect label="Date of Birth (Optional)" icon="calendar-outline" value={dob ? dob.toLocaleDateString("en-GB") : "Select Date"} onPress={() => setShowDobPicker(true)} />
+          <SignupSelect label="Gender (Optional)" icon="male-female-outline" value={gender ? gender.charAt(0).toUpperCase() + gender.slice(1) : "Select Gender"} onPress={() => openPicker("gender")} />
 
           <SignupInput label="Referral Code (Optional)" icon="gift-outline" placeholder="Enter code" value={referralCode} onChangeText={setReferralCode} />
 

@@ -18,6 +18,7 @@ import {
   markNotificationRead,
 } from "../services/notificationService";
 import { getCart } from "../services/cartService";
+import messaging from "@react-native-firebase/messaging";
 
 import AppHeader from "./AppHeader";
 import BottomBar from "./BottomBar";
@@ -145,10 +146,14 @@ export default function Notifications({ navigation }) {
   );
 
   // =========================
-  // LISTEN FOR LIVE NOTIFICATIONS (Disabled)
+  // LISTEN FOR LIVE NOTIFICATIONS
   // =========================
   useEffect(() => {
-    // FCM listener disabled - Firebase messaging removed
+    const unsubscribe = messaging().onMessage(async remoteMessage => {
+      console.log("Foreground notification received:", remoteMessage);
+      if (user) loadNotifications();
+    });
+    return unsubscribe;
   }, [user]);
 
   // =========================

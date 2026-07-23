@@ -33,11 +33,35 @@ import { getCart } from "../../services/cartService";
 import { RefreshControl } from "react-native";
 import useRefresh from "../../hooks/useRefresh";
 import { useSettings } from "../../context/SettingsContext";
+import { resolveFirebaseStorageUrl } from "../../utils/imageHelpers";
 
 
 
 const { width } = Dimensions.get("window");
 const scale = width / 400;
+
+function ResolvedImage({ value, fallbackSource, style }) {
+  const [source, setSource] = useState(fallbackSource);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadImage = async () => {
+      const resolved = await resolveFirebaseStorageUrl(value, fallbackSource);
+      if (isMounted) {
+        setSource(resolved || fallbackSource);
+      }
+    };
+
+    loadImage();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [value, fallbackSource]);
+
+  return <Image source={source || fallbackSource} style={style} />;
+}
 
 export default function Categories({ route, navigation }) {
   const { userId } = route?.params || {};
@@ -338,12 +362,9 @@ export default function Categories({ route, navigation }) {
 
           <View style={cardStyles.floatingImageContainer}>
             <View style={[cardStyles.imageShadow, { shadowColor: '#00000020' }]}>
-              <Image
-                source={
-                  item?.image
-                    ? { uri: item.image }
-                    : require("../../assets/restaurant.png")
-                }
+              <ResolvedImage
+                value={item?.image}
+                fallbackSource={require("../../assets/restaurant.png")}
                 style={cardStyles.roundImage}
               />
             </View>
@@ -422,12 +443,9 @@ export default function Categories({ route, navigation }) {
             <View style={styles.executiveCard}>
               <View style={styles.cardHeader}>
                 <View style={styles.imageContainer}>
-                  <Image
-                    source={
-                      restaurant?.restaurant_photo
-                        ? { uri: restaurant.restaurant_photo }
-                        : require("../../assets/restaurant.png")
-                    }
+                  <ResolvedImage
+                    value={restaurant?.restaurant_photo}
+                    fallbackSource={require("../../assets/restaurant.png")}
                     style={styles.boutiqueImage}
                   />
                   <View style={styles.vegFloatingTag}>

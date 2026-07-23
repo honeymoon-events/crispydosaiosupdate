@@ -24,6 +24,7 @@ import { fetchProfile } from "../services/profileService";
 import { getWalletSummary } from "../services/walletService";
 import { getCart } from "../services/cartService";
 import { getOrders } from "../services/orderService";
+import auth from "@react-native-firebase/auth";
 
 const { width } = Dimensions.get("window");
 const scale = width / 400;
@@ -160,6 +161,7 @@ export default function Profile({ navigation }) {
   };
 
   const confirmLogout = async () => {
+    await auth().signOut();
     await AsyncStorage.multiRemove(["token", "user", "profile_cache", "wallet_summary_cache"]);
     navigation.reset({ index: 0, routes: [{ name: "Login" }] });
   };
@@ -203,7 +205,7 @@ export default function Profile({ navigation }) {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#16a34a" />}
       >
         {/* PROFILE HEADER */}
-        <View style={[styles.profileHeader, { paddingTop: insets.top + 20 }]}>
+        <View style={[styles.profileHeader, { paddingTop: insets.top + 10 }]}>
           <View style={styles.headerContent}>
             {navigation?.canGoBack() && (
               <TouchableOpacity
@@ -323,12 +325,12 @@ const styles = StyleSheet.create({
   profileHeader: {
     paddingHorizontal: 20,
     paddingBottom: 20,
-    paddingTop: 20,
+    paddingTop: 10,
     backgroundColor: '#FFF',
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
   },
-  headerContent: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
+  headerContent: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   avatarContainer: { position: 'relative' },
   avatarInner: { width: 70, height: 70, borderRadius: 35, backgroundColor: '#F0FDF4', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#DCFCE7' },
 
