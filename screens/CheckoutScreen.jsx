@@ -3,10 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
-  Platform,
-  Keyboard,
-  KeyboardAvoidingView,
-  TouchableWithoutFeedback,
+  ScrollView,
   FlatList,
   TouchableOpacity,
   Modal,
@@ -15,9 +12,10 @@ import {
   RefreshControl,
   Animated,
   Dimensions,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -89,6 +87,7 @@ export default function CheckoutScreen({ navigation }) {
   const walletScale = useRef(new Animated.Value(0)).current;
   const loyaltyScale = useRef(new Animated.Value(0)).current;
   const bottomSheetAnim = useRef(new Animated.Value(height)).current;
+  const keyboardBehavior = Platform.OS === "ios" ? "padding" : undefined;
 
   // Helper to open sheet
   const openSheet = () => {
@@ -415,17 +414,10 @@ export default function CheckoutScreen({ navigation }) {
   }, [isFocused]);
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top", "left", "right", "bottom"]}>
-      <KeyboardAvoidingView
-        style={styles.keyboardAvoidingWrapper}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={insets.top}
-      >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View style={styles.screenWrapper}>
-            <AppHeader user={user} navigation={navigation} cartItems={cartItemsMap} onMenuPress={() => setMenuVisible(true)} />
+    <SafeAreaView style={styles.safe} edges={["left", "right"]}>
+      <AppHeader user={user} navigation={navigation} cartItems={cartItemsMap} onMenuPress={() => setMenuVisible(true)} />
 
-            {/* Success Popup Modal */}
+      {/* Success Popup Modal */}
       <Modal visible={toastVisible} transparent animationType="fade">
         <View style={styles.successPopupOverlay}>
           <Animated.View style={[styles.successPopupCard, { transform: [{ scale: toastAnim.interpolate({ inputRange: [-100, 60], outputRange: [0, 1] }) }] }]}>
@@ -438,17 +430,21 @@ export default function CheckoutScreen({ navigation }) {
         </View>
       </Modal>
 
-      <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
-        <KeyboardAwareScrollView
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="interactive"
-          enableOnAndroid
-          extraScrollHeight={20}
-          contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom + 40 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        >
-          <View style={styles.mainContent}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={keyboardBehavior}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+      >
+        <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
+          <ScrollView
+            style={{ flex: 1 }}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom + 120 }}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="interactive"
+          >
+            <View style={styles.mainContent}>
             <View style={styles.sectionHeader}>
               <View>
                 <Text style={styles.mainTitle}>Review Order</Text>
@@ -614,170 +610,157 @@ export default function CheckoutScreen({ navigation }) {
               <Text style={styles.premiumSafetyText}>Crispy Dosa’s Kitchen Safety & Hygiene Assured</Text>
             </View>
           </View>
-        </KeyboardAwareScrollView>
+          </ScrollView>
 
-        {/* ULTIMATE BUSINESS CHECKOUT BAR (Sticky bottom like Cart Summary) */}
-        {!deliveryPopup && !allergyPopup && visibleCart.length > 0 && (
-          <View style={[styles.stickyFooter, { bottom: insets.bottom + 10 }]}>
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={[styles.actionBtnPremium, !stripeConfigured && { opacity: 0.5 }]}
-              onPress={placeOrder}
-              disabled={processingPayment || !stripeConfigured}
-            >
-              <LinearGradient
-                colors={["#16a34a", "#15803d"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.btnGradient}
+          {/* ULTIMATE BUSINESS CHECKOUT BAR (Sticky bottom like Cart Summary) */}
+          {!deliveryPopup && !allergyPopup && visibleCart.length > 0 && (
+            <View style={[styles.stickyFooter, { paddingBottom: insets.bottom || 20 }]}>
+              <TouchableOpacity
+                activeOpacity={0.9}
+                style={[styles.actionBtnPremium, !stripeConfigured && { opacity: 0.5 }]}
+                onPress={placeOrder}
+                disabled={processingPayment || !stripeConfigured}
               >
-                {processingPayment ? <ActivityIndicator size="small" color="#FFF" /> : (
-                  <>
-                    <Text style={styles.btnTextPremium}>Place Order</Text>
-                    <Ionicons name="arrow-forward" size={22} color="#FFF" style={{ marginLeft: 10 }} />
-                  </>
-                )}
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
-        )}
-      </Animated.View>
-      </View>
-    </TouchableWithoutFeedback>
-  </KeyboardAvoidingView>
+                <LinearGradient
+                  colors={["#16a34a", "#15803d"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.btnGradient}
+                >
+                  {processingPayment ? <ActivityIndicator size="small" color="#FFF" /> : (
+                    <>
+                      <Text style={styles.btnTextPremium}>Place Order</Text>
+                      <Ionicons name="arrow-forward" size={22} color="#FFF" style={{ marginLeft: 10 }} />
+                    </>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          )}
+        </Animated.View>
+      </KeyboardAvoidingView>
 
       {/* Delivery sheet */}
-      <Modal visible={deliveryPopup} transparent animationType="fade">
-        <View style={styles.sheetOverlay}>
-          <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => closeSheet(() => setDeliveryPopup(false))} />
-          <Animated.View style={[styles.sheetContent, { transform: [{ translateY: bottomSheetAnim }], paddingBottom: insets.bottom + 20 }]}>
-            <View style={styles.sheetHandle} />
-            <View style={styles.modalHeaderRow}>
-              <TouchableOpacity onPress={() => closeSheet(() => navigation.goBack())} style={styles.modalBackBtn}>
-                <Ionicons name="arrow-back" size={22} color="#1C1C1C" />
+<Modal visible={deliveryPopup} transparent animationType="fade" >
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={keyboardBehavior} keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}>
+          <View style={styles.sheetOverlay}>
+            <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => closeSheet(() => setDeliveryPopup(false))} />
+            <Animated.View style={[styles.sheetContent, { transform: [{ translateY: bottomSheetAnim }], paddingBottom: insets.bottom + 20 }]}> 
+              <View style={styles.sheetHandle} />
+              <View style={styles.modalHeaderRow}>
+                <TouchableOpacity onPress={() => closeSheet(() => navigation.goBack())} style={styles.modalBackBtn}>
+                  <Ionicons name="arrow-back" size={22} color="#1C1C1C" />
+                </TouchableOpacity>
+                <Text style={styles.sheetTitle}>Pickup details</Text>
+              </View>
+
+              {/* Kerbside Option */}
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => setDeliveryMethod("kerbside")}
+                style={[
+                  styles.optionCard,
+                  deliveryMethod === 'kerbside' && styles.optionCardSelected
+                ]}
+              >
+                <View style={[styles.optionIconContainer, deliveryMethod === 'kerbside' && { backgroundColor: '#FFF' }]}> 
+                  <Ionicons name="car-sport" size={24} color={deliveryMethod === 'kerbside' ? "#16a34a" : "#64748B"} />
+                </View>
+                <View style={{ flex: 1, marginLeft: 16 }}>
+                  <Text style={[styles.optionTitle, deliveryMethod === 'kerbside' && { color: '#065F46' }]}>Kerbside Delivery</Text>
+                  <Text style={styles.optionSub}>We bring it to your car</Text>
+                </View>
+                <Ionicons
+                  name={deliveryMethod === 'kerbside' ? "checkmark-circle" : "ellipse-outline"}
+                  size={22}
+                  color={deliveryMethod === 'kerbside' ? "#16a34a" : "#CBD5E1"}
+                />
               </TouchableOpacity>
-              <Text style={styles.sheetTitle}>Pickup details</Text>
-            </View>
 
-            {/* Kerbside Option */}
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() => setDeliveryMethod("kerbside")}
-              style={[
-                styles.optionCard,
-                deliveryMethod === 'kerbside' && styles.optionCardSelected
-              ]}
-            >
-              <View style={[styles.optionIconContainer, deliveryMethod === 'kerbside' && { backgroundColor: '#FFF' }]}>
-                <Ionicons name="car-sport" size={24} color={deliveryMethod === 'kerbside' ? "#16a34a" : "#64748B"} />
-              </View>
-              <View style={{ flex: 1, marginLeft: 16 }}>
-                <Text style={[styles.optionTitle, deliveryMethod === 'kerbside' && { color: '#065F46' }]}>Kerbside Delivery</Text>
-                <Text style={styles.optionSub}>We bring it to your car</Text>
-              </View>
-              <Ionicons
-                name={deliveryMethod === 'kerbside' ? "checkmark-circle" : "ellipse-outline"}
-                size={22}
-                color={deliveryMethod === 'kerbside' ? "#16a34a" : "#CBD5E1"}
-              />
-            </TouchableOpacity>
+              {/* In-store Option */}
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => setDeliveryMethod("instore")}
+                style={[
+                  styles.optionCard,
+                  deliveryMethod === 'instore' && styles.optionCardSelected
+                ]}
+              >
+                <View style={[styles.optionIconContainer, deliveryMethod === 'instore' && { backgroundColor: '#FFF' }]}> 
+                  <Ionicons name="walk" size={24} color={deliveryMethod === 'instore' ? "#16a34a" : "#64748B"} />
+                </View>
+                <View style={{ flex: 1, marginLeft: 16 }}>
+                  <Text style={[styles.optionTitle, deliveryMethod === 'instore' && { color: '#065F46' }]}>In-store Pickup</Text>
+                  <Text style={styles.optionSub}>You collect from our counter</Text>
+                </View>
+                <Ionicons
+                  name={deliveryMethod === 'instore' ? "checkmark-circle" : "ellipse-outline"}
+                  size={22}
+                  color={deliveryMethod === 'instore' ? "#16a34a" : "#CBD5E1"}
+                />
+              </TouchableOpacity>
 
-            {/* In-store Option */}
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() => setDeliveryMethod("instore")}
-              style={[
-                styles.optionCard,
-                deliveryMethod === 'instore' && styles.optionCardSelected
-              ]}
-            >
-              <View style={[styles.optionIconContainer, deliveryMethod === 'instore' && { backgroundColor: '#FFF' }]}>
-                <Ionicons name="walk" size={24} color={deliveryMethod === 'instore' ? "#16a34a" : "#64748B"} />
-              </View>
-              <View style={{ flex: 1, marginLeft: 16 }}>
-                <Text style={[styles.optionTitle, deliveryMethod === 'instore' && { color: '#065F46' }]}>In-store Pickup</Text>
-                <Text style={styles.optionSub}>You collect from our counter</Text>
-              </View>
-              <Ionicons
-                name={deliveryMethod === 'instore' ? "checkmark-circle" : "ellipse-outline"}
-                size={22}
-                color={deliveryMethod === 'instore' ? "#16a34a" : "#CBD5E1"}
-              />
-            </TouchableOpacity>
+              {deliveryMethod === 'kerbside' && (
+                <View style={styles.kerbsideFields}>
+                  <TextInput style={styles.kInput} placeholder="Car Name / Make" value={kerbsideName} onChangeText={setKerbsideName} placeholderTextColor="#BCBCBC" />
+                  <TextInput style={styles.kInput} placeholder="Car Color" value={kerbsideColor} onChangeText={setKerbsideColor} placeholderTextColor="#BCBCBC" />
+                  <TextInput style={styles.kInput} placeholder="Reg Number" value={kerbsideReg} onChangeText={setKerbsideReg} placeholderTextColor="#BCBCBC" />
+                </View>
+              )}
 
-            {deliveryMethod === 'kerbside' && (
-              <View style={styles.kerbsideFields}>
-                <TextInput style={styles.kInput} placeholder="Car Name / Make" value={kerbsideName} onChangeText={setKerbsideName} placeholderTextColor="#BCBCBC" />
-                <TextInput style={styles.kInput} placeholder="Car Color" value={kerbsideColor} onChangeText={setKerbsideColor} placeholderTextColor="#BCBCBC" />
-                <TextInput style={styles.kInput} placeholder="Reg Number" value={kerbsideReg} onChangeText={setKerbsideReg} placeholderTextColor="#BCBCBC" />
-              </View>
-            )}
-
-            <TouchableOpacity
-              style={[styles.sheetActionBtn, !deliveryMethod && { opacity: 0.5 }]}
-              disabled={!deliveryMethod}
-              onPress={() => {
-                closeSheet(() => {
-                  setDeliveryPopup(false);
-                  setTimeout(() => setAllergyPopup(true), 100);
-                });
-              }}
-            >
-              <LinearGradient colors={["#10B981", "#059669"]} style={styles.sheetActionGrad}>
-                <Text style={styles.sheetActionText}>Continue</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </Animated.View>
-        </View>
+              <TouchableOpacity
+                style={[styles.sheetActionBtn, !deliveryMethod && { opacity: 0.5 }]}
+                disabled={!deliveryMethod}
+                onPress={() => {
+                  closeSheet(() => {
+                    setDeliveryPopup(false);
+                    setTimeout(() => setAllergyPopup(true), 100);
+                  });
+                }}
+              >
+                <LinearGradient colors={["#10B981", "#059669"]} style={styles.sheetActionGrad}>
+                  <Text style={styles.sheetActionText}>Continue</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </Animated.View>
+          </View>
+        </KeyboardAvoidingView>
       </Modal >
 
       {/* Allergy sheet */}
-      <Modal visible={allergyPopup} transparent animationType="fade">
-        <View style={styles.sheetOverlay}>
-          <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => closeSheet(() => setAllergyPopup(false))} />
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            style={styles.sheetKeyboardAvoiding}
-            keyboardVerticalOffset={Platform.OS === "ios" ? 40 : 0}
-          >
-            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-              <KeyboardAwareScrollView
-                enableOnAndroid
-                keyboardShouldPersistTaps="handled"
-                keyboardDismissMode="interactive"
-                contentContainerStyle={[styles.sheetScrollContainer, { paddingBottom: insets.bottom + 40 }]}
-                showsVerticalScrollIndicator={false}
-              >
-                <Animated.View style={[styles.sheetContent, { transform: [{ translateY: bottomSheetAnim }] }]}> 
-                  <View style={styles.sheetHandle} />
-                  <View style={styles.modalHeaderRow}>
-                    <TouchableOpacity onPress={() => closeSheet(() => { setAllergyPopup(false); setTimeout(() => setDeliveryPopup(true), 100); })} style={styles.modalBackBtn}>
-                      <Ionicons name="arrow-back" size={22} color="#1C1C1C" />
-                    </TouchableOpacity>
-                    <Text style={styles.sheetTitle}>Food Allergies?</Text>
-                  </View>
-                  <Text style={styles.sheetDesc}>Tell us if we need to be careful with any specific ingredients.</Text>
-                  <TextInput
-                    style={styles.allergyInput}
-                    placeholder="e.g. No Peanuts, No Dairy..."
-                    multiline
-                    value={allergyNote}
-                    onChangeText={setAllergyNote}
-                    placeholderTextColor="#999"
-                  />
-                  <TouchableOpacity style={styles.sheetActionBtn} onPress={() => closeSheet(() => setAllergyPopup(false))}>
-                    <LinearGradient colors={["#10B981", "#059669"]} style={styles.sheetActionGrad}>
-                      <Text style={styles.sheetActionText}>Review Order Summary</Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
-                </Animated.View>
-              </KeyboardAwareScrollView>
-            </TouchableWithoutFeedback>
-          </KeyboardAvoidingView>
-        </View>
-      </Modal>
+      <Modal visible={allergyPopup} transparent animationType="fade" >
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={keyboardBehavior} keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}>
+          <View style={styles.sheetOverlay}>
+            <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => closeSheet(() => setAllergyPopup(false))} />
+            <Animated.View style={[styles.sheetContent, { transform: [{ translateY: bottomSheetAnim }], paddingBottom: insets.bottom + 20 }]}> 
+              <View style={styles.sheetHandle} />
+              <View style={styles.modalHeaderRow}>
+                <TouchableOpacity onPress={() => closeSheet(() => { setAllergyPopup(false); setTimeout(() => setDeliveryPopup(true), 100); })} style={styles.modalBackBtn}>
+                  <Ionicons name="arrow-back" size={22} color="#1C1C1C" />
+                </TouchableOpacity>
+                <Text style={styles.sheetTitle}>Food Allergies?</Text>
+              </View>
+              <Text style={styles.sheetDesc}>Tell us if we need to be careful with any specific ingredients.</Text>
+              <TextInput
+                style={styles.allergyInput}
+                placeholder="e.g. No Peanuts, No Dairy..."
+                multiline
+                value={allergyNote}
+                onChangeText={setAllergyNote}
+                placeholderTextColor="#999"
+              />
+              <TouchableOpacity style={styles.sheetActionBtn} onPress={() => closeSheet(() => setAllergyPopup(false))}>
+                <LinearGradient colors={["#10B981", "#059669"]} style={styles.sheetActionGrad}>
+                  <Text style={styles.sheetActionText}>Review Order Summary</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </Animated.View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal >
+
       {/* Full Screen High-End Order Success Modal */}
-      <Modal visible={orderPlaced} transparent animationType="none">
+      < Modal visible={orderPlaced} transparent animationType="none" >
         <View style={styles.successFullOverlay}>
           <LinearGradient colors={["#16A34A", "#15803D"]} style={styles.successGrad}>
             <Animated.View style={[styles.successContent, { opacity: successOpacity, transform: [{ scale: successScale }] }]}>
@@ -851,10 +834,6 @@ export default function CheckoutScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#F8FAFC" },
-  keyboardAvoidingWrapper: { flex: 1 },
-  screenWrapper: { flex: 1 },
-  sheetKeyboardAvoiding: { flex: 1, justifyContent: 'flex-end' },
-  sheetScrollContainer: { flexGrow: 1 },
   mainContent: { paddingBottom: 0 },
 
   /* HEADER */
@@ -1110,11 +1089,20 @@ const styles = StyleSheet.create({
   /* STICKY FOOTER */
   stickyFooter: {
     position: 'absolute',
+    bottom: 0,
     left: 0,
     right: 0,
+    backgroundColor: '#FFF',
+    paddingHorizontal: 20,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
     zIndex: 9999,
-    alignItems: 'center',
-    paddingHorizontal: 20
+    elevation: 15,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -5 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
   },
   actionBtnPremium: {
     width: '100%',
@@ -1192,7 +1180,7 @@ const styles = StyleSheet.create({
   },
 
   sheetDesc: { fontSize: 14 * scale, fontFamily: 'PoppinsMedium', color: '#64748B', marginBottom: 20, lineHeight: 22 },
-  allergyInput: { backgroundColor: '#F8FAFC', borderRadius: 18, padding: 18, minHeight: 120, textAlignVertical: 'top', borderWidth: 1, borderColor: '#E2E8F0', fontFamily: 'PoppinsMedium', color: '#0F172A', marginBottom: 25 },
+  allergyInput: { backgroundColor: '#F8FAFC', borderRadius: 18, padding: 18, height: 120, textAlignVertical: 'top', borderWidth: 1, borderColor: '#E2E8F0', fontFamily: 'PoppinsMedium', color: '#0F172A', marginBottom: 25 },
 
   /* SUCCESS POPUP MODAL */
   successPopupOverlay: {
