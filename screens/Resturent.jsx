@@ -36,7 +36,6 @@ import Rating5 from "../assets/rating-5.png";
 
 import { fetchRestaurants } from "../services/restaurantService";
 import { getCart } from "../services/cartService";
-import { resolveFirebaseStorageUrl } from "../utils/imageHelpers";
 
 const { width } = Dimensions.get("window");
 const scale = width / 400;
@@ -56,28 +55,6 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
   return (R * c).toFixed(1); // Distance in miles
 };
 
-function RestaurantImage({ value, fallbackSource, style }) {
-  const [source, setSource] = useState(fallbackSource);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadImage = async () => {
-      const resolved = await resolveFirebaseStorageUrl(value, fallbackSource);
-      if (isMounted) {
-        setSource(resolved || fallbackSource);
-      }
-    };
-
-    loadImage();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [value, fallbackSource]);
-
-  return <Image source={source || fallbackSource} style={style} />;
-}
 
 function RestaurantCard({ name, address, photo, onPress, instore, kerbside, distance }) {
 
@@ -89,9 +66,8 @@ function RestaurantCard({ name, address, photo, onPress, instore, kerbside, dist
     >
       <View style={cardStyles.cardBody}>
         <View style={cardStyles.imageContainer}>
-          <RestaurantImage
-            value={photo}
-            fallbackSource={RestaurantImg}
+          <Image
+            source={photo ? { uri: photo } : RestaurantImg}
             style={cardStyles.image}
           />
         </View>

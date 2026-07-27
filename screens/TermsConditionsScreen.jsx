@@ -48,7 +48,7 @@ export default function TermsConditionsScreen({ navigation }) {
 
                 <Text style={styles.sectionTitle}>7. Contact Information</Text>
                 <Text style={styles.paragraph}>
-                    Questions about the Terms should be sent to us at support@crispydosa.co.uk.
+                    Questions about the Terms should be sent to us at support@crispydosa.co.uk or call 020 8814 1444.
                 </Text>
 
                 <View style={{ height: 40 }} />

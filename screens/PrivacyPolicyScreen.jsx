@@ -44,7 +44,7 @@ export default function PrivacyPolicyScreen({ navigation }) {
 
                 <Text style={styles.sectionTitle}>5. Contact Us</Text>
                 <Text style={styles.paragraph}>
-                    If you have any questions about this privacy policy or our privacy practices, please contact us at support@crispydosa.co.uk.
+                    If you have any questions about this privacy policy or our privacy practices, please contact us at support@crispydosa.co.uk or call 020 8814 1444.
                 </Text>
 
                 <View style={{ height: 40 }} />

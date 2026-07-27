@@ -33,8 +33,14 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>This app uses the camera to upload food images.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>We need your location to show relevant stores and offers near you.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app allows users to select images from their photo library.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>This app uses voice input to place orders.</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UIAppFonts</key>
@@ -71,12 +77,6 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>NSCameraUsageDescription</key>
-	<string>This app uses the camera to upload food images.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>This app allows users to select images from their photo library.</string>
-	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>This app uses voice input to place orders.</string>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
 </dict>

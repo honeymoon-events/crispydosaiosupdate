@@ -32,34 +32,9 @@ import BottomBar from "../BottomBar";
 import MenuModal from "../MenuModal";
 import LinearGradient from "react-native-linear-gradient";
 import { useSettings } from "../../context/SettingsContext";
-import { resolveFirebaseStorageUrl } from "../../utils/imageHelpers";
-
 
 const { width } = Dimensions.get("window");
 const scale = width / 400;
-
-function ProductImage({ value, fallbackSource, style }) {
-  const [source, setSource] = useState(fallbackSource);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadImage = async () => {
-      const resolved = await resolveFirebaseStorageUrl(value, fallbackSource);
-      if (isMounted) {
-        setSource(resolved || fallbackSource);
-      }
-    };
-
-    loadImage();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [value, fallbackSource]);
-
-  return <Image source={source || fallbackSource} style={style} />;
-}
 
 export default function Products({ route, navigation }) {
   const { userId, categoryId } = route.params;
@@ -708,9 +683,12 @@ export default function Products({ route, navigation }) {
         <View style={styles.cardInner}>
           {/* IMAGE SECTION */}
           <View style={styles.imageWrapper}>
-            <ProductImage
-              value={item.image}
-              fallbackSource={require("../../assets/restaurant.png")}
+            <Image
+              source={
+                item.image
+                  ? { uri: item.image }
+                  : require("../../assets/restaurant.png")
+              }
               style={styles.cardImg}
             />
           </View>

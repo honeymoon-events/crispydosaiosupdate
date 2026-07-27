@@ -11,12 +11,21 @@ const normalizeImageUrl = (value) => {
     return trimmed;
   }
 
+  // Safe encode function to handle spaces and avoid double-encoding
+  const encodeSafe = (url) => {
+    try {
+      return encodeURI(decodeURI(url));
+    } catch (e) {
+      return encodeURI(url);
+    }
+  };
+
   if (/^(https?:)?\/\//i.test(trimmed)) {
-    return trimmed;
+    return encodeSafe(trimmed);
   }
 
   if (trimmed.startsWith('gs://')) {
-    return trimmed;
+    return encodeSafe(trimmed);
   }
 
   const base = IMAGE_BASE_URL.replace(/\/+$/, '');
@@ -25,7 +34,7 @@ const normalizeImageUrl = (value) => {
     ? cleaned.replace(/^uploads\//, '')
     : cleaned;
 
-  return `${base}/${normalizedPath}`;
+  return encodeSafe(`${base}/${normalizedPath}`);
 };
 
 export const resolveImageSource = (value, fallbackSource = null) => {

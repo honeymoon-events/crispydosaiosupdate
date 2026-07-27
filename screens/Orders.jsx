@@ -166,7 +166,8 @@ export default function Orders({ navigation, route }) {
 
   const renderOrder = ({ item }) => {
     const orderId = item.order_id || item.id;
-    const orderNo = item.order_no || `#${orderId}`;
+    const baseNo = item.order_no || item.order_number;
+    const orderNo = baseNo ? (String(baseNo).startsWith('#') ? baseNo : `#${baseNo}`) : `#${String(orderId).slice(-6).toUpperCase()}`;
     const createdAt = item.created_at || item.order_date;
     let dateStr = "";
     if (createdAt) {

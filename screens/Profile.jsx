@@ -166,6 +166,32 @@ export default function Profile({ navigation }) {
     navigation.reset({ index: 0, routes: [{ name: "Login" }] });
   };
 
+  const deleteAccount = () => {
+    Alert.alert(
+      "Delete Account?",
+      "Are you sure you want to delete your account?\n\nPlease note that this action is permanent. All your data, including wallet balances and available credits, will be permanently lost.",
+      [
+        { text: "Cancel", onPress: () => {}, style: "cancel" },
+        { text: "Delete", onPress: confirmDeleteAccount, style: "destructive" }
+      ]
+    );
+  };
+
+  const confirmDeleteAccount = async () => {
+    try {
+      const currentUser = auth().currentUser;
+      if (currentUser) {
+        await currentUser.delete();
+      }
+    } catch (err) {
+      console.log("Delete account error:", err);
+      // Fallback: Just sign out if deletion requires recent login
+      await auth().signOut();
+    }
+    await AsyncStorage.multiRemove(["token", "user", "profile_cache", "wallet_summary_cache"]);
+    navigation.reset({ index: 0, routes: [{ name: "Login" }] });
+  };
+
 
 
   if (!userLocal) {
@@ -205,7 +231,7 @@ export default function Profile({ navigation }) {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#16a34a" />}
       >
         {/* PROFILE HEADER */}
-        <View style={[styles.profileHeader, { paddingTop: insets.top + 10 }]}>
+        <View style={[styles.profileHeader, { paddingTop: 10 }]}>
           <View style={styles.headerContent}>
             {navigation?.canGoBack() && (
               <TouchableOpacity
@@ -290,6 +316,13 @@ export default function Profile({ navigation }) {
           <View style={styles.logoutInner}>
             <Ionicons name="log-out" size={22} color="#EF4444" />
             <Text style={styles.logoutText}>Sign Out Account</Text>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.deleteBtn} onPress={deleteAccount} activeOpacity={0.7}>
+          <View style={styles.deleteInner}>
+            <Ionicons name="trash-outline" size={22} color="#DC2626" />
+            <Text style={styles.deleteText}>Delete Account</Text>
           </View>
         </TouchableOpacity>
 
@@ -395,6 +428,18 @@ const styles = StyleSheet.create({
     borderColor: '#FEE2E2'
   },
   logoutText: { fontSize: 16 * scale, fontFamily: "PoppinsBold", fontWeight: "700", color: "#EF4444", marginLeft: 10 },
+
+  deleteBtn: { marginHorizontal: 20, marginTop: 12, borderRadius: 12, overflow: 'hidden' },
+  deleteInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    backgroundColor: '#FFF',
+    borderWidth: 1,
+    borderColor: '#FECACA'
+  },
+  deleteText: { fontSize: 16 * scale, fontFamily: "PoppinsBold", fontWeight: "700", color: "#DC2626", marginLeft: 10 },
 
   versionText: { textAlign: 'center', marginTop: 24, marginBottom: 20, fontSize: 12 * scale, fontFamily: "PoppinsMedium", color: "#94A3B8" },
 });

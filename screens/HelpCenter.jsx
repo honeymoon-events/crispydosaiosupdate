@@ -6,6 +6,7 @@ import {
     ScrollView,
     StyleSheet,
     TouchableOpacity,
+    Alert,
     Linking,
     Platform,
     Dimensions,
@@ -21,7 +22,7 @@ const scale = width / 400;
 
 export default function HelpCenter({ navigation }) {
     const insets = useSafeAreaInsets();
-    const supportPhone = "+44 20 1234 5678"; // UK dummy phone number
+    const supportPhone = "020 8814 1444";
     const supportEmail = "support@crispydosa.com";
 
     const handleCall = () => {
@@ -42,11 +43,6 @@ export default function HelpCenter({ navigation }) {
         Linking.openURL(`mailto:${supportEmail}`);
     };
 
-    const handleWhatsApp = () => {
-        const whatsappNumber = "442012345678"; // UK number without + and spaces
-        Linking.openURL(`whatsapp://send?phone=${whatsappNumber}`);
-    };
-
     const contactMethods = [
         {
             id: "phone",
@@ -65,15 +61,6 @@ export default function HelpCenter({ navigation }) {
             color: "#1976d2",
             bgColor: "#e3f2fd",
             onPress: handleEmail,
-        },
-        {
-            id: "whatsapp",
-            icon: "logo-whatsapp",
-            title: "WhatsApp",
-            subtitle: "Chat with us",
-            color: "#25D366",
-            bgColor: "#e8f8f0",
-            onPress: handleWhatsApp,
         },
     ];
 

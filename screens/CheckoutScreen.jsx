@@ -3,7 +3,10 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
+  Platform,
+  Keyboard,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
   FlatList,
   TouchableOpacity,
   Modal,
@@ -14,6 +17,7 @@ import {
   Dimensions,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -411,10 +415,17 @@ export default function CheckoutScreen({ navigation }) {
   }, [isFocused]);
 
   return (
-    <SafeAreaView style={styles.safe} edges={["left", "right"]}>
-      <AppHeader user={user} navigation={navigation} cartItems={cartItemsMap} onMenuPress={() => setMenuVisible(true)} />
+    <SafeAreaView style={styles.safe} edges={["top", "left", "right", "bottom"]}>
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingWrapper}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={insets.top}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.screenWrapper}>
+            <AppHeader user={user} navigation={navigation} cartItems={cartItemsMap} onMenuPress={() => setMenuVisible(true)} />
 
-      {/* Success Popup Modal */}
+            {/* Success Popup Modal */}
       <Modal visible={toastVisible} transparent animationType="fade">
         <View style={styles.successPopupOverlay}>
           <Animated.View style={[styles.successPopupCard, { transform: [{ scale: toastAnim.interpolate({ inputRange: [-100, 60], outputRange: [0, 1] }) }] }]}>
@@ -428,9 +439,13 @@ export default function CheckoutScreen({ navigation }) {
       </Modal>
 
       <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
-        <ScrollView
+        <KeyboardAwareScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 110 }}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          enableOnAndroid
+          extraScrollHeight={20}
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom + 40 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         >
           <View style={styles.mainContent}>
@@ -599,7 +614,7 @@ export default function CheckoutScreen({ navigation }) {
               <Text style={styles.premiumSafetyText}>Crispy Dosa’s Kitchen Safety & Hygiene Assured</Text>
             </View>
           </View>
-        </ScrollView>
+        </KeyboardAwareScrollView>
 
         {/* ULTIMATE BUSINESS CHECKOUT BAR (Sticky bottom like Cart Summary) */}
         {!deliveryPopup && !allergyPopup && visibleCart.length > 0 && (
@@ -627,9 +642,12 @@ export default function CheckoutScreen({ navigation }) {
           </View>
         )}
       </Animated.View>
+      </View>
+    </TouchableWithoutFeedback>
+  </KeyboardAvoidingView>
 
       {/* Delivery sheet */}
-      < Modal visible={deliveryPopup} transparent animationType="fade" >
+      <Modal visible={deliveryPopup} transparent animationType="fade">
         <View style={styles.sheetOverlay}>
           <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => closeSheet(() => setDeliveryPopup(false))} />
           <Animated.View style={[styles.sheetContent, { transform: [{ translateY: bottomSheetAnim }], paddingBottom: insets.bottom + 20 }]}>
@@ -714,37 +732,52 @@ export default function CheckoutScreen({ navigation }) {
       </Modal >
 
       {/* Allergy sheet */}
-      < Modal visible={allergyPopup} transparent animationType="fade" >
+      <Modal visible={allergyPopup} transparent animationType="fade">
         <View style={styles.sheetOverlay}>
           <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => closeSheet(() => setAllergyPopup(false))} />
-          <Animated.View style={[styles.sheetContent, { transform: [{ translateY: bottomSheetAnim }], paddingBottom: insets.bottom + 20 }]}>
-            <View style={styles.sheetHandle} />
-            <View style={styles.modalHeaderRow}>
-              <TouchableOpacity onPress={() => closeSheet(() => { setAllergyPopup(false); setTimeout(() => setDeliveryPopup(true), 100); })} style={styles.modalBackBtn}>
-                <Ionicons name="arrow-back" size={22} color="#1C1C1C" />
-              </TouchableOpacity>
-              <Text style={styles.sheetTitle}>Food Allergies?</Text>
-            </View>
-            <Text style={styles.sheetDesc}>Tell us if we need to be careful with any specific ingredients.</Text>
-            <TextInput
-              style={styles.allergyInput}
-              placeholder="e.g. No Peanuts, No Dairy..."
-              multiline
-              value={allergyNote}
-              onChangeText={setAllergyNote}
-              placeholderTextColor="#999"
-            />
-            <TouchableOpacity style={styles.sheetActionBtn} onPress={() => closeSheet(() => setAllergyPopup(false))}>
-              <LinearGradient colors={["#10B981", "#059669"]} style={styles.sheetActionGrad}>
-                <Text style={styles.sheetActionText}>Review Order Summary</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </Animated.View>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={styles.sheetKeyboardAvoiding}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 40 : 0}
+          >
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+              <KeyboardAwareScrollView
+                enableOnAndroid
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="interactive"
+                contentContainerStyle={[styles.sheetScrollContainer, { paddingBottom: insets.bottom + 40 }]}
+                showsVerticalScrollIndicator={false}
+              >
+                <Animated.View style={[styles.sheetContent, { transform: [{ translateY: bottomSheetAnim }] }]}> 
+                  <View style={styles.sheetHandle} />
+                  <View style={styles.modalHeaderRow}>
+                    <TouchableOpacity onPress={() => closeSheet(() => { setAllergyPopup(false); setTimeout(() => setDeliveryPopup(true), 100); })} style={styles.modalBackBtn}>
+                      <Ionicons name="arrow-back" size={22} color="#1C1C1C" />
+                    </TouchableOpacity>
+                    <Text style={styles.sheetTitle}>Food Allergies?</Text>
+                  </View>
+                  <Text style={styles.sheetDesc}>Tell us if we need to be careful with any specific ingredients.</Text>
+                  <TextInput
+                    style={styles.allergyInput}
+                    placeholder="e.g. No Peanuts, No Dairy..."
+                    multiline
+                    value={allergyNote}
+                    onChangeText={setAllergyNote}
+                    placeholderTextColor="#999"
+                  />
+                  <TouchableOpacity style={styles.sheetActionBtn} onPress={() => closeSheet(() => setAllergyPopup(false))}>
+                    <LinearGradient colors={["#10B981", "#059669"]} style={styles.sheetActionGrad}>
+                      <Text style={styles.sheetActionText}>Review Order Summary</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </Animated.View>
+              </KeyboardAwareScrollView>
+            </TouchableWithoutFeedback>
+          </KeyboardAvoidingView>
         </View>
-      </Modal >
-
+      </Modal>
       {/* Full Screen High-End Order Success Modal */}
-      < Modal visible={orderPlaced} transparent animationType="none" >
+      <Modal visible={orderPlaced} transparent animationType="none">
         <View style={styles.successFullOverlay}>
           <LinearGradient colors={["#16A34A", "#15803D"]} style={styles.successGrad}>
             <Animated.View style={[styles.successContent, { opacity: successOpacity, transform: [{ scale: successScale }] }]}>
@@ -818,6 +851,10 @@ export default function CheckoutScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#F8FAFC" },
+  keyboardAvoidingWrapper: { flex: 1 },
+  screenWrapper: { flex: 1 },
+  sheetKeyboardAvoiding: { flex: 1, justifyContent: 'flex-end' },
+  sheetScrollContainer: { flexGrow: 1 },
   mainContent: { paddingBottom: 0 },
 
   /* HEADER */
@@ -1155,7 +1192,7 @@ const styles = StyleSheet.create({
   },
 
   sheetDesc: { fontSize: 14 * scale, fontFamily: 'PoppinsMedium', color: '#64748B', marginBottom: 20, lineHeight: 22 },
-  allergyInput: { backgroundColor: '#F8FAFC', borderRadius: 18, padding: 18, height: 120, textAlignVertical: 'top', borderWidth: 1, borderColor: '#E2E8F0', fontFamily: 'PoppinsMedium', color: '#0F172A', marginBottom: 25 },
+  allergyInput: { backgroundColor: '#F8FAFC', borderRadius: 18, padding: 18, minHeight: 120, textAlignVertical: 'top', borderWidth: 1, borderColor: '#E2E8F0', fontFamily: 'PoppinsMedium', color: '#0F172A', marginBottom: 25 },
 
   /* SUCCESS POPUP MODAL */
   successPopupOverlay: {
