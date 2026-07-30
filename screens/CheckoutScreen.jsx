@@ -30,8 +30,8 @@ import { getCart } from "../services/cartService";
 import { createOrder } from "../services/orderService";
 import { getWalletSummary } from "../services/walletService";
 import { useStripe } from "@stripe/stripe-react-native";
-import { API_BASE_URL } from "../config/baseURL";
 import { fetchStripeKey } from "../services/restaurantService";
+import functions from '@react-native-firebase/functions';
 
 const { width, height } = Dimensions.get("window");
 const scale = width / 400;
@@ -255,16 +255,16 @@ export default function CheckoutScreen({ navigation }) {
       const amount = getFinalTotal();
       if (amount <= 0) return;
 
-      const restaurant_id = cart[0]?.restaurant_id;
-      if (!restaurant_id) return;
+      const restaurantId = cart[0]?.restaurant_id || cart[0]?.user_id;
+      if (!restaurantId) return;
 
-      const res = await fetch(`${API_BASE_URL}/stripe/create-payment-intent`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount, restaurant_id, currency: 'gbp' }),
+      const res = await functions().httpsCallable('createPaymentIntent')({
+        amount,
+        currency: "gbp",
+        restaurant_id: restaurantId
       });
 
-      const data = await res.json();
+      const data = res.data;
       if (data.clientSecret) {
         setPaymentIntent(data);
         await initPaymentSheet({
@@ -292,6 +292,9 @@ export default function CheckoutScreen({ navigation }) {
             showPremiumAlert("Payments Unavailable", "This restaurant has not configured Stripe.", "error");
           }
         })();
+      } else {
+        setStripeConfigured(false);
+        showPremiumAlert("Payments Unavailable", "Invalid restaurant details.", "error");
       }
     }
   }, [isFocused, cart]);
@@ -320,13 +323,14 @@ export default function CheckoutScreen({ navigation }) {
       // If intent not ready or amount changed, fetch fresh one
       if (!activeIntent || activeIntent.amount !== getFinalTotal()) {
         const amount = getFinalTotal();
-        const restaurant_id = cart[0]?.restaurant_id || cart[0]?.user_id;
-        const res = await fetch(`${API_BASE_URL}/stripe/create-payment-intent`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ amount, restaurant_id, currency: 'gbp' }),
+        const restaurantId = cart[0]?.restaurant_id || cart[0]?.user_id;
+
+        const res = await functions().httpsCallable('createPaymentIntent')({
+          amount,
+          currency: "gbp",
+          restaurant_id: restaurantId
         });
-        activeIntent = await res.json();
+        activeIntent = res.data;
         if (!activeIntent.clientSecret) {
           showPremiumAlert("Payment Error", activeIntent.message || "Payment initialization failed. Please try again.", "error");
           setProcessingPayment(false);
@@ -345,9 +349,14 @@ export default function CheckoutScreen({ navigation }) {
         return;
       }
 
+      const restaurantId = cart[0]?.restaurant_id || cart[0]?.user_id;
+
       const payload = {
-        user_id: user.id,
-        customer_id: user.customer_id ?? user.id,
+        user_id: String(restaurantId),
+        customer_id: String(user.customer_id ?? user.id),
+        customer_name: user.full_name || "",
+        customer_email: user.email || "",
+        customer_phone: user.mobile_number || "",
         payment_mode: 1,
         payment_request_id: activeIntent.payment_intent_id,
         instore: deliveryMethod === "instore" ? 1 : 0,
@@ -358,6 +367,8 @@ export default function CheckoutScreen({ navigation }) {
         mobile_number: user.mobile_number || "",
         wallet_used: useWallet ? walletUsed : 0,
         loyalty_used: useLoyalty ? loyaltyUsed : 0,
+        total_amount: getCartTotal(),
+        grand_total: getFinalTotal(),
         items: (visibleCart || []).map((i) => ({
           product_id: i.product_id,
           product_name: i.product_name,
@@ -430,21 +441,16 @@ export default function CheckoutScreen({ navigation }) {
         </View>
       </Modal>
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={keyboardBehavior}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
-      >
-        <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
-          <ScrollView
-            style={{ flex: 1 }}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom + 120 }}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="interactive"
-          >
-            <View style={styles.mainContent}>
+      <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
+        <ScrollView
+          style={{ flex: 1 }}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 120 }}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+        >
+          <View style={styles.mainContent}>
             <View style={styles.sectionHeader}>
               <View>
                 <Text style={styles.mainTitle}>Review Order</Text>
@@ -610,42 +616,42 @@ export default function CheckoutScreen({ navigation }) {
               <Text style={styles.premiumSafetyText}>Crispy Dosa’s Kitchen Safety & Hygiene Assured</Text>
             </View>
           </View>
-          </ScrollView>
+        </ScrollView>
 
-          {/* ULTIMATE BUSINESS CHECKOUT BAR (Sticky bottom like Cart Summary) */}
-          {!deliveryPopup && !allergyPopup && visibleCart.length > 0 && (
-            <View style={[styles.stickyFooter, { paddingBottom: insets.bottom || 20 }]}>
-              <TouchableOpacity
-                activeOpacity={0.9}
-                style={[styles.actionBtnPremium, !stripeConfigured && { opacity: 0.5 }]}
-                onPress={placeOrder}
-                disabled={processingPayment || !stripeConfigured}
+        {/* ULTIMATE BUSINESS CHECKOUT BAR (Sticky bottom like Cart Summary) */}
+        {!deliveryPopup && !allergyPopup && visibleCart.length > 0 && (
+          <View style={[styles.stickyFooter, { paddingBottom: insets.bottom || 20 }]}>
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={[styles.actionBtnPremium, !stripeConfigured && { opacity: 0.5 }]}
+              onPress={placeOrder}
+              disabled={processingPayment || !stripeConfigured}
+            >
+              <LinearGradient
+                colors={["#16a34a", "#15803d"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.btnGradient}
               >
-                <LinearGradient
-                  colors={["#16a34a", "#15803d"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.btnGradient}
-                >
-                  {processingPayment ? <ActivityIndicator size="small" color="#FFF" /> : (
-                    <>
-                      <Text style={styles.btnTextPremium}>Place Order</Text>
-                      <Ionicons name="arrow-forward" size={22} color="#FFF" style={{ marginLeft: 10 }} />
-                    </>
-                  )}
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-          )}
-        </Animated.View>
-      </KeyboardAvoidingView>
+                {processingPayment ? <ActivityIndicator size="small" color="#FFF" /> : (
+                  <>
+                    <Text style={styles.btnTextPremium}>Place Order</Text>
+                    <Ionicons name="arrow-forward" size={22} color="#FFF" style={{ marginLeft: 10 }} />
+                  </>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        )}
+      </Animated.View>
 
       {/* Delivery sheet */}
-<Modal visible={deliveryPopup} transparent animationType="fade" >
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={keyboardBehavior} keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}>
+      {deliveryPopup && (
+        <View style={[StyleSheet.absoluteFillObject, { zIndex: 100, elevation: 100 }]}>
+        <KeyboardAvoidingView behavior={keyboardBehavior} style={{ flex: 1 }}>
           <View style={styles.sheetOverlay}>
             <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => closeSheet(() => setDeliveryPopup(false))} />
-            <Animated.View style={[styles.sheetContent, { transform: [{ translateY: bottomSheetAnim }], paddingBottom: insets.bottom + 20 }]}> 
+            <Animated.View style={[styles.sheetContent, { transform: [{ translateY: bottomSheetAnim }], paddingBottom: insets.bottom + 20 }]}>
               <View style={styles.sheetHandle} />
               <View style={styles.modalHeaderRow}>
                 <TouchableOpacity onPress={() => closeSheet(() => navigation.goBack())} style={styles.modalBackBtn}>
@@ -663,7 +669,7 @@ export default function CheckoutScreen({ navigation }) {
                   deliveryMethod === 'kerbside' && styles.optionCardSelected
                 ]}
               >
-                <View style={[styles.optionIconContainer, deliveryMethod === 'kerbside' && { backgroundColor: '#FFF' }]}> 
+                <View style={[styles.optionIconContainer, deliveryMethod === 'kerbside' && { backgroundColor: '#FFF' }]}>
                   <Ionicons name="car-sport" size={24} color={deliveryMethod === 'kerbside' ? "#16a34a" : "#64748B"} />
                 </View>
                 <View style={{ flex: 1, marginLeft: 16 }}>
@@ -686,7 +692,7 @@ export default function CheckoutScreen({ navigation }) {
                   deliveryMethod === 'instore' && styles.optionCardSelected
                 ]}
               >
-                <View style={[styles.optionIconContainer, deliveryMethod === 'instore' && { backgroundColor: '#FFF' }]}> 
+                <View style={[styles.optionIconContainer, deliveryMethod === 'instore' && { backgroundColor: '#FFF' }]}>
                   <Ionicons name="walk" size={24} color={deliveryMethod === 'instore' ? "#16a34a" : "#64748B"} />
                 </View>
                 <View style={{ flex: 1, marginLeft: 16 }}>
@@ -725,14 +731,16 @@ export default function CheckoutScreen({ navigation }) {
             </Animated.View>
           </View>
         </KeyboardAvoidingView>
-      </Modal >
+      </View>
+      )}
 
       {/* Allergy sheet */}
-      <Modal visible={allergyPopup} transparent animationType="fade" >
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={keyboardBehavior} keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}>
+      {allergyPopup && (
+        <View style={[StyleSheet.absoluteFillObject, { zIndex: 100, elevation: 100 }]}>
+        <KeyboardAvoidingView behavior={keyboardBehavior} style={{ flex: 1 }}>
           <View style={styles.sheetOverlay}>
             <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => closeSheet(() => setAllergyPopup(false))} />
-            <Animated.View style={[styles.sheetContent, { transform: [{ translateY: bottomSheetAnim }], paddingBottom: insets.bottom + 20 }]}> 
+            <Animated.View style={[styles.sheetContent, { transform: [{ translateY: bottomSheetAnim }], paddingBottom: insets.bottom + 20 }]}>
               <View style={styles.sheetHandle} />
               <View style={styles.modalHeaderRow}>
                 <TouchableOpacity onPress={() => closeSheet(() => { setAllergyPopup(false); setTimeout(() => setDeliveryPopup(true), 100); })} style={styles.modalBackBtn}>
@@ -757,7 +765,8 @@ export default function CheckoutScreen({ navigation }) {
             </Animated.View>
           </View>
         </KeyboardAvoidingView>
-      </Modal >
+      </View>
+      )}
 
       {/* Full Screen High-End Order Success Modal */}
       < Modal visible={orderPlaced} transparent animationType="none" >
@@ -796,33 +805,26 @@ export default function CheckoutScreen({ navigation }) {
           <Animated.View style={[styles.alertCard, { transform: [{ scale: alertScale }] }]}>
             <View style={styles.alertContent}>
               {/* Vibrant Icon Ring */}
-              <View style={[
-                styles.alertIconRing,
-                { backgroundColor: alertType === 'error' ? '#EF4444' : '#16A34A' }
-              ]}>
+              <TouchableOpacity
+                style={[
+                  styles.alertIconRing,
+                  { backgroundColor: alertType === 'error' ? '#EF4444' : '#16A34A' }
+                ]}
+                onPress={hidePremiumAlert}
+                activeOpacity={0.8}
+              >
                 <Ionicons
                   name={alertType === 'error' ? "close" : "information"}
                   size={42 * scale}
                   color="#FFFFFF"
                 />
-              </View>
+              </TouchableOpacity>
 
               <Text style={styles.alertTitleText}>{alertTitle}</Text>
 
               <View style={styles.alertMsgContainer}>
                 <Text style={styles.alertMsgText}>{alertMsg}</Text>
               </View>
-
-              <TouchableOpacity style={styles.alertBtn} onPress={hidePremiumAlert} activeOpacity={0.8}>
-                <LinearGradient
-                  colors={alertType === 'error' ? ["#EF4444", "#DC2626"] : ["#16A34A", "#15803D"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.alertBtnGrad}
-                >
-                  <Text style={styles.alertBtnText}>Got it</Text>
-                </LinearGradient>
-              </TouchableOpacity>
             </View>
           </Animated.View>
         </View>
@@ -1249,8 +1251,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   alertCard: {
-    width: "100%",
-    maxWidth: 340,
+    width: "90%",
+    maxWidth: 360,
     borderRadius: 28,
     backgroundColor: "#FFFFFF",
     overflow: "hidden",
@@ -1262,7 +1264,7 @@ const styles = StyleSheet.create({
   },
   alertContent: {
     paddingTop: 40,
-    paddingBottom: 30,
+    paddingBottom: 28,
     paddingHorizontal: 24,
     alignItems: "center",
   },
@@ -1284,12 +1286,12 @@ const styles = StyleSheet.create({
     fontFamily: "PoppinsBold",
     color: "#0F172A",
     fontWeight: "800",
-    marginBottom: 12,
+    marginBottom: 10,
     textAlign: "center",
   },
   alertMsgContainer: {
     width: '100%',
-    marginBottom: 26,
+    marginBottom: 28,
   },
   alertMsgText: {
     fontSize: 15 * scale,
@@ -1301,22 +1303,26 @@ const styles = StyleSheet.create({
   alertBtn: {
     width: "100%",
     borderRadius: 16,
-    marginTop: 15,
     overflow: "hidden",
+    marginTop: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 4,
   },
   alertBtnGrad: {
-    paddingVertical: 18,
-    minHeight: 56,
+    paddingVertical: 16,
     alignItems: "center",
     justifyContent: "center",
   },
   alertBtnText: {
-    fontSize: 16,
+    fontSize: 16 * scale,
     color: "#FFFFFF",
     fontFamily: "PoppinsBold",
     fontWeight: "800",
     textAlign: "center",
-    letterSpacing: 1.2,
+    letterSpacing: 0.5,
     textTransform: "uppercase",
   },
 });

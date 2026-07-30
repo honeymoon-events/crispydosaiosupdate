@@ -198,49 +198,46 @@ export default function MenuModal({ visible, setVisible, user, navigation }) {
               <Text style={styles.footerVersion}>v 1.0.4 Premium</Text>
             </View>
           </Animated.View>
-        </View>
-      </Modal>
 
-      {/* PREMIUM LOGOUT CONFIRMATION MODAL */}
-      <Modal
-        visible={logoutModalVisible}
-        transparent
-        animationType="fade"
-      >
-        <View style={styles.logoutOverlay}>
-          <Animated.View style={[
-            styles.logoutCard,
-            { transform: [{ scale: logoutScaleAnim }] }
-          ]}>
-            <View style={styles.logoutContent}>
-              <View style={styles.logoutIconCircle}>
-                <Ionicons name="log-out" size={36 * scale} color="#EF4444" />
-              </View>
+          {/* PREMIUM LOGOUT CONFIRMATION OVERLAY */}
+          {logoutModalVisible && (
+            <View style={[StyleSheet.absoluteFillObject, styles.logoutOverlay]}>
+              <Animated.View style={[
+                styles.logoutCard,
+                { transform: [{ scale: logoutScaleAnim }] }
+              ]}>
+                <View style={styles.logoutContent}>
+                  <View style={styles.logoutIconCircle}>
+                    <Ionicons name="log-out" size={36 * scale} color="#EF4444" />
+                  </View>
 
-              <Text style={styles.logoutTitle}>Sign Out?</Text>
-              <Text style={styles.logoutMsg}>
-                Are you sure you want to sign out? You'll need to sign back in to place new orders.
-              </Text>
+                  <Text style={styles.logoutTitle}>Sign Out?</Text>
+                  <Text style={styles.logoutMsg}>
+                    Are you sure you want to sign out? You'll need to sign back in to place new orders.
+                  </Text>
 
-              <View style={styles.logoutActionRow}>
-                <TouchableOpacity
-                  style={styles.cancelLogoutBtn}
-                  onPress={cancelLogout}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.cancelLogoutText}>Not Now</Text>
-                </TouchableOpacity>
+                  <View style={styles.logoutActionRow}>
+                    <TouchableOpacity
+                      style={styles.cancelLogoutBtn}
+                      onPress={cancelLogout}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.cancelLogoutText}>Not Now</Text>
+                    </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={styles.confirmLogoutBtn}
-                  onPress={confirmLogout}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.confirmLogoutText}>Sign Out</Text>
-                </TouchableOpacity>
-              </View>
+                    <TouchableOpacity
+                      style={styles.confirmLogoutBtn}
+                      onPress={confirmLogout}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.confirmLogoutText}>Sign Out</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </Animated.View>
             </View>
-          </Animated.View>
+          )}
+
         </View>
       </Modal>
     </>
