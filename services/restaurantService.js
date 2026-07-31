@@ -5,19 +5,7 @@ const IMAGE_BASE_URL = "https://api.crispydosa.info/uploads";
 
 const getSafeUrl = (url) => {
   if (!url || typeof url !== 'string') return '';
-  const trimmed = url.trim();
-  if (!trimmed) return '';
-  if (trimmed.startsWith('data:') || trimmed.startsWith('file://') || trimmed.startsWith('content://')) return trimmed;
-
-  let finalUrl = trimmed;
-  if (!/^(https?:)?\/\//i.test(trimmed) && !trimmed.startsWith('gs://')) {
-    const base = IMAGE_BASE_URL.replace(/\/+$/, '');
-    const cleaned = trimmed.replace(/^\/+/, '');
-    const normalizedPath = cleaned.startsWith('uploads/') ? cleaned.replace(/^uploads\//, '') : cleaned;
-    finalUrl = `${base}/${normalizedPath}`;
-  }
-
-  return finalUrl.replace(/ /g, '%20');
+  return url.trim();
 };
 
 // Fetch all restaurants
