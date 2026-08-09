@@ -1,13 +1,9 @@
 import firestore from '@react-native-firebase/firestore';
 
-const IMAGE_BASE_URL = "https://api.crispydosa.info/uploads";
-
 const getSafeUrl = (url) => {
   if (!url || typeof url !== 'string') return '';
-  return url.trim();
-};
-
-export const fetchCategories = async (userId) => {
+  return url.trim().replace(/^http:\/\//i, 'https://').replace(/ /g, '%20');
+};export const fetchCategories = async (userId) => {
   try {
     const snapshot = await firestore().collection('categories')
       .where('user_id', 'in', [Number(userId), String(userId)]).get();

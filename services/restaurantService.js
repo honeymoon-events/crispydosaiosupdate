@@ -1,11 +1,9 @@
 // restaurantService.js
 import firestore from '@react-native-firebase/firestore';
 
-const IMAGE_BASE_URL = "https://api.crispydosa.info/uploads";
-
 const getSafeUrl = (url) => {
   if (!url || typeof url !== 'string') return '';
-  return url.trim();
+  return url.trim().replace(/^http:\/\//i, 'https://').replace(/ /g, '%20');
 };
 
 // Fetch all restaurants
@@ -26,7 +24,7 @@ export const fetchRestaurants = async (lat, lng) => {
       };
     });
   } catch (error) {
-    console.error("Restaurant API Error:", error);
+    console.error("Fetch Restaurants Error:", error);
     return [];
   }
 };
@@ -46,7 +44,7 @@ export const fetchRestaurantDetails = async (userId) => {
     }
     return null;
   } catch (error) {
-    console.error("Restaurant Details API Error:", error);
+    console.error("Fetch Restaurant Details Error:", error);
     return null;
   }
 };
