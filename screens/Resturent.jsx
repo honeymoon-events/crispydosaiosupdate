@@ -56,8 +56,7 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
 };
 
 
-function RestaurantCard({ name, address, photo, onPress, instore, kerbside, distance }) {
-
+function RestaurantCard({ name, address, photo, onPress, instore, kerbside, delivery, distance }) {
   return (
     <TouchableOpacity
       style={cardStyles.card}
@@ -105,6 +104,13 @@ function RestaurantCard({ name, address, photo, onPress, instore, kerbside, dist
               <View style={cardStyles.serviceChip}>
                 <Ionicons name="storefront" size={16 * scale} color="#FF2B5C" />
                 <Text style={cardStyles.serviceChipText}>In-store</Text>
+              </View>
+            )}
+
+            {delivery && (
+              <View style={cardStyles.serviceChip}>
+                <Ionicons name="bicycle" size={16 * scale} color="#16A34A" />
+                <Text style={[cardStyles.serviceChipText, { color: '#16A34A' }]}>Delivery</Text>
               </View>
             )}
 
@@ -254,7 +260,7 @@ export default function Resturent({ navigation }) {
     }, 4000);
 
     return () => clearInterval(timer);
-  }, [activeIndex]);
+  }, [activeIndex, offers.length]);
 
   // Move all hooks to the top
   const [alertVisible, setAlertVisible] = useState(false);
@@ -590,6 +596,7 @@ export default function Resturent({ navigation }) {
               address={r.address}
               photo={r.photo}
               instore={r.instore}
+              delivery={r.delivery}
               kerbside={r.kerbside}
               distance={r.distance}
               onPress={() =>
@@ -1039,16 +1046,16 @@ const cardStyles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   imageContainer: {
-    marginRight: 12, // Reduced gap
+    marginRight: 12,
     position: 'relative',
   },
   image: {
-    width: 115 * scale, // Reduced for text space
+    width: 115 * scale,
     height: 115 * scale,
     borderRadius: 14,
     resizeMode: 'cover',
     backgroundColor: '#F3F4F6',
-    position: 'relative', // Ensure absolute children are positioned relative to this or container
+    position: 'relative',
   },
   distanceRow: {
     flexDirection: 'row',
@@ -1145,9 +1152,11 @@ const cardStyles = StyleSheet.create({
   },
   serviceRow: {
     flexDirection: "row",
-    flexWrap: 'wrap',
+    flexWrap: 'nowrap',
+    alignItems: 'center',
     marginTop: 10,
-    marginBottom: 2, // Added small margin below the row itself
+    marginBottom: 2,
+    overflow: 'hidden',
   },
   serviceChip: {
     flexDirection: "row",
@@ -1159,12 +1168,13 @@ const cardStyles = StyleSheet.create({
     paddingHorizontal: 8,
     borderRadius: 6,
     marginRight: 6,
-    marginBottom: 4,
+    maxWidth: 110,
   },
   serviceChipText: {
     marginLeft: 4,
     fontSize: 11 * scale,
     color: "#E23744",
     fontFamily: "PoppinsSemiBold",
+    includeFontPadding: false,
   },
 });

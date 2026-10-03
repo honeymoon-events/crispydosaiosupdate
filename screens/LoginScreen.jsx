@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   View,
   Text,
@@ -34,12 +34,6 @@ export default function LoginScreen({ navigation }) {
   const [fullName, setFullName] = useState("");
   const scaleAnim = React.useRef(new Animated.Value(0)).current;
 
-  React.useEffect(() => {
-    if (otp.length === 4 && !loading) {
-      handleVerifyOtp();
-    }
-  }, [otp]);
-
   // Premium Alert State
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState("");
@@ -49,7 +43,7 @@ export default function LoginScreen({ navigation }) {
   const [alertAction, setAlertAction] = useState(null);
   const alertScale = React.useRef(new Animated.Value(0)).current;
 
-  const showPremiumAlert = (title, msg, type = "info", btnText = "Ok", action = null) => {
+  const showPremiumAlert = useCallback((title, msg, type = "info", btnText = "Ok", action = null) => {
     setAlertTitle(title);
     setAlertMsg(msg);
     setAlertType(type);
@@ -62,7 +56,63 @@ export default function LoginScreen({ navigation }) {
       friction: 8,
       useNativeDriver: true,
     }).start();
-  };
+  }, [alertScale]);
+
+  const handleVerifyOtp = useCallback(async () => {
+    if (!otp) {
+      showPremiumAlert("Error", "Please enter the OTP", "error");
+      return;
+    }
+
+    let userPhone = phone.trim();
+    if (userPhone.startsWith('0')) {
+      userPhone = userPhone.substring(1);
+    }
+    const cleanPhone = `+44${userPhone}`;
+
+    setLoading(true);
+    try {
+      await verifyMsg91Otp(cleanPhone, otp.trim());
+
+      const { user } = await loginUserWithPhone(cleanPhone);
+
+      messaging().getToken().then(fcmToken => {
+        if (fcmToken && user?.id) {
+          saveFcmToken({
+            userType: "customer",
+            userId: user.id,
+            token: fcmToken
+          }).catch(console.log);
+        }
+      }).catch(err => console.log("FCM Token fetch failed:", err));
+
+      setFullName(user.full_name || "Guest");
+      setSuccessVisible(true);
+
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }).start();
+
+      setTimeout(() => {
+        setSuccessVisible(false);
+        navigation.replace("Resturent");
+      }, 2500);
+
+    } catch (e) {
+      showPremiumAlert("Login Failed", e.message, "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [navigation, otp, phone, scaleAnim, showPremiumAlert]);
+
+  React.useEffect(() => {
+    if (otp.length === 4 && !loading) {
+      handleVerifyOtp();
+    }
+  }, [otp, loading, handleVerifyOtp]);
 
   const hidePremiumAlert = () => {
     Animated.timing(alertScale, {
@@ -113,60 +163,6 @@ export default function LoginScreen({ navigation }) {
       } else {
         showPremiumAlert("Error", e.message, "error");
       }
-    }
-  };
-
-  const handleVerifyOtp = async () => {
-    if (!otp) {
-      showPremiumAlert("Error", "Please enter the OTP", "error");
-      return;
-    }
-    
-    let userPhone = phone.trim();
-    if (userPhone.startsWith('0')) {
-      userPhone = userPhone.substring(1);
-    }
-    const cleanPhone = `+44${userPhone}`;
-
-    setLoading(true);
-    try {
-      await verifyMsg91Otp(cleanPhone, otp.trim());
-      
-      const { user } = await loginUserWithPhone(cleanPhone);
-
-      /* =======================
-        🔔 STEP 6.3 – FCM TOKEN
-      ======================= */
-      messaging().getToken().then(fcmToken => {
-        if (fcmToken && user?.id) {
-          saveFcmToken({
-            userType: "customer",
-            userId: user.id,
-            token: fcmToken
-          }).catch(console.log);
-        }
-      }).catch(err => console.log("FCM Token fetch failed:", err));
-      /* ======================= */
-
-      setFullName(user.full_name || "Guest");
-      setSuccessVisible(true);
-
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        tension: 50,
-        friction: 7,
-        useNativeDriver: true,
-      }).start();
-
-      setTimeout(() => {
-        setSuccessVisible(false);
-        navigation.replace("Resturent");
-      }, 2500);
-
-    } catch (e) {
-      showPremiumAlert("Login Failed", e.message, "error");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -241,6 +237,14 @@ export default function LoginScreen({ navigation }) {
                     Register Now
                   </Text>
                 </Text>
+
+                <TouchableOpacity
+                  style={styles.deliveryLink}
+                  activeOpacity={0.8}
+                  onPress={() => navigation.navigate("DeliveryLogin")}
+                >
+                  <Text style={styles.deliveryLinkText}>Delivery Partner? Sign In Here 🛵</Text>
+                </TouchableOpacity>
               </>
             ) : (
               <>
@@ -477,6 +481,18 @@ const styles = StyleSheet.create({
   signup: {
     color: "#1a8b50",
     fontWeight: "800",
+    textDecorationLine: "underline",
+  },
+
+  deliveryLink: {
+    marginTop: 12,
+    alignSelf: "center",
+  },
+
+  deliveryLinkText: {
+    color: "#1a8b50",
+    fontSize: 13,
+    fontWeight: "700",
     textDecorationLine: "underline",
   },
 

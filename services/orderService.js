@@ -7,9 +7,23 @@ import firestore from '@react-native-firebase/firestore';
  */
 export const createOrder = async (orderData) => {
   try {
+    const sanitizedOrderData = Object.fromEntries(
+      Object.entries(orderData || {}).filter(([_, value]) => value !== undefined)
+    );
+
     const orderNumber = "ORD-" + Math.floor(100000 + Math.random() * 900000);
-    await firestore().collection('orders').add({ ...orderData, order_number: orderNumber,
-      order_status: 1, created_at: firestore.FieldValue.serverTimestamp() });
+    const normalizedOrder = {
+      ...sanitizedOrderData,
+      restaurant_id: sanitizedOrderData.restaurant_id || sanitizedOrderData.user_id || "",
+      order_number: orderNumber,
+      status: sanitizedOrderData.status || "pending",
+      order_status: sanitizedOrderData.order_status || "pending",
+      delivery_status: sanitizedOrderData.delivery_status || "pending",
+      created_at: firestore.FieldValue.serverTimestamp(),
+    };
+
+    await firestore().collection('orders').add(normalizedOrder);
+
     const cartSnapshot = await firestore().collection('carts')
       .where('customer_id', '==', String(orderData.customer_id)).get();
     const batch = firestore().batch();

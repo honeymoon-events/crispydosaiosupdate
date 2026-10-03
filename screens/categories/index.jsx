@@ -99,7 +99,7 @@ export default function Categories({ route, navigation }) {
       });
     };
     run();
-  }, []);
+  }, [animatedTexts.length, fadeAnim, offers.length]);
 
   // load user
   useEffect(() => {
@@ -448,13 +448,19 @@ export default function Categories({ route, navigation }) {
                     {restaurant.instore && (
                       <View style={styles.serviceChip}>
                         <Ionicons name="storefront" size={16 * scale} color="#FF2B5C" />
-                        <Text style={styles.serviceChipText}>In-store</Text>
+                        <Text style={[styles.serviceChipText, { color: '#FF2B5C' }]}>In-store</Text>
+                      </View>
+                    )}
+                    {restaurant.delivery && (
+                      <View style={styles.serviceChip}>
+                        <Ionicons name="bicycle" size={16 * scale} color="#16A34A" />
+                        <Text style={[styles.serviceChipText, { color: '#16A34A' }]}>Delivery</Text>
                       </View>
                     )}
                     {restaurant.kerbside && (
                       <View style={styles.serviceChip}>
-                        <Ionicons name="car-sport" size={18 * scale} color="#16a34a" />
-                        <Text style={[styles.serviceChipText, { color: '#16a34a' }]}>Kerbside</Text>
+                        <Ionicons name="car-sport" size={18 * scale} color="#111827" />
+                        <Text style={[styles.serviceChipText, { color: '#111827' }]}>Kerbside</Text>
                       </View>
                     )}
                   </View>
@@ -749,16 +755,24 @@ const styles = StyleSheet.create({
   serviceChip: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "transparent",
-    paddingVertical: 4,
-    marginRight: 15,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 999,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    shadowColor: "#000",
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
   },
   serviceChipText: {
     marginLeft: 6,
-    fontSize: 14 * scale,
+    fontSize: 12.5 * scale,
     fontFamily: "PoppinsBold",
-    color: "#FF2B5C",
-    letterSpacing: 0.3,
+    color: "#111827",
+    letterSpacing: 0.2,
   },
   cardFooter: {
     flexDirection: "row",

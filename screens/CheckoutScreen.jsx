@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useState, useMemo, useRef } from "react";
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
   Dimensions,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -30,7 +31,12 @@ import { getCart } from "../services/cartService";
 import { createOrder } from "../services/orderService";
 import { getWalletSummary } from "../services/walletService";
 import { useStripe } from "@stripe/stripe-react-native";
-import { fetchStripeKey } from "../services/restaurantService";
+import Geolocation from 'react-native-geolocation-service';
+import {
+  fetchRestaurantDetails,
+  fetchStripeKey,
+} from "../services/restaurantService";
+import { isRestaurantDeliveryEnabled, calculateHomeDeliveryFee } from "../utils/restaurantDelivery";
 import functions from '@react-native-firebase/functions';
 
 const { width, height } = Dimensions.get("window");
@@ -45,8 +51,19 @@ export default function CheckoutScreen({ navigation }) {
 
   const [deliveryPopup, setDeliveryPopup] = useState(true);
   const [allergyPopup, setAllergyPopup] = useState(false);
+  const [deliveryAddressSheetVisible, setDeliveryAddressSheetVisible] = useState(false);
 
   const [deliveryMethod, setDeliveryMethod] = useState(null);
+  const [restaurant, setRestaurant] = useState(null);
+  const [houseFlatNo, setHouseFlatNo] = useState("");
+  const [streetLandmark, setStreetLandmark] = useState("");
+  const [city, setCity] = useState("");
+  const [postcode, setPostcode] = useState("");
+  const [deliveryInstructions, setDeliveryInstructions] = useState("");
+  const [deliveryCoords, setDeliveryCoords] = useState(null);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [deliveryDistanceKm, setDeliveryDistanceKm] = useState(0);
   const [kerbsideName, setKerbsideName] = useState("");
   const [kerbsideColor, setKerbsideColor] = useState("");
   const [kerbsideReg, setKerbsideReg] = useState("");
@@ -90,29 +107,97 @@ export default function CheckoutScreen({ navigation }) {
   const keyboardBehavior = Platform.OS === "ios" ? "padding" : undefined;
 
   // Helper to open sheet
-  const openSheet = () => {
+  const openSheet = useCallback(() => {
     Animated.spring(bottomSheetAnim, {
       toValue: 0,
       tension: 60,
       friction: 8,
       useNativeDriver: true
     }).start();
-  };
+  }, [bottomSheetAnim]);
 
   // Helper to close sheet
-  const closeSheet = (callback) => {
+  const closeSheet = useCallback((callback) => {
     Animated.timing(bottomSheetAnim, {
       toValue: height,
       duration: 250,
       useNativeDriver: true
     }).start(callback);
+  }, [bottomSheetAnim]);
+
+  // Distance calculation helper (Haversine formula in miles)
+  const calculateDistanceMiles = (lat1, lon1, lat2, lon2) => {
+    const p1 = Number(lat1);
+    const l1 = Number(lon1);
+    const p2 = Number(lat2);
+    const l2 = Number(lon2);
+    if (isNaN(p1) || isNaN(l1) || isNaN(p2) || isNaN(l2) || p1 === 0 || p2 === 0) return null;
+
+    const R = 3958.8; // Radius of the earth in miles
+    const dLat = (p2 - p1) * (Math.PI / 180);
+    const dLon = (l2 - l1) * (Math.PI / 180);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(p1 * (Math.PI / 180)) * Math.cos(p2 * (Math.PI / 180)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return parseFloat((R * c).toFixed(1));
   };
+
+  // Auto-geocode UK postcode if coordinates are not set or when postcode changes
+  const geocodePostcode = async (pc) => {
+    if (!pc || typeof pc !== "string") return null;
+    const cleanPc = pc.replace(/\s+/g, "").toUpperCase();
+    if (cleanPc.length < 4) return null;
+
+    try {
+      const res = await fetch(`https://api.postcodes.io/postcodes/${encodeURIComponent(cleanPc)}`);
+      const data = await res.json();
+      if (data?.status === 200 && data?.result) {
+        const { latitude, longitude } = data.result;
+        const coords = { lat: latitude, lng: longitude, latitude, longitude };
+        setDeliveryCoords(coords);
+        return coords;
+      }
+    } catch (e) {
+      console.log("postcodes.io lookup error:", e);
+    }
+
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?postalcode=${encodeURIComponent(pc)}&country=GB&format=json&limit=1`,
+        { headers: { "Accept-Language": "en", "User-Agent": "CrispyDosaApp" } }
+      );
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        const lat = parseFloat(data[0].lat);
+        const lon = parseFloat(data[0].lon);
+        if (!isNaN(lat) && !isNaN(lon)) {
+          const coords = { lat, lng: lon, latitude: lat, longitude: lon };
+          setDeliveryCoords(coords);
+          return coords;
+        }
+      }
+    } catch (e) {
+      console.log("Nominatim geocode fallback error:", e);
+    }
+    return null;
+  };
+
+  useEffect(() => {
+    if (deliveryMethod === "delivery" && postcode && postcode.trim().length >= 5) {
+      const timer = setTimeout(() => {
+        geocodePostcode(postcode.trim());
+      }, 700);
+      return () => clearTimeout(timer);
+    }
+  }, [deliveryMethod, postcode]);
 
   useEffect(() => {
     if (deliveryPopup || allergyPopup) {
       openSheet();
     }
-  }, [deliveryPopup, allergyPopup]);
+  }, [deliveryPopup, allergyPopup, openSheet]);
 
   const cartItemsMap = useMemo(() => {
     const map = {};
@@ -133,7 +218,7 @@ export default function CheckoutScreen({ navigation }) {
     } else {
       fadeAnim.setValue(0);
     }
-  }, [isFocused]);
+  }, [fadeAnim, isFocused]);
 
   useEffect(() => {
     (async () => {
@@ -151,19 +236,293 @@ export default function CheckoutScreen({ navigation }) {
     })();
   }, [user, isFocused]);
 
-  const getCartTotal = () => {
+  useEffect(() => {
+    if (!isFocused || cart.length === 0) return;
+
+    const restaurantId = cart[0]?.restaurant_id || cart[0]?.user_id;
+    if (!restaurantId) {
+      setRestaurant(null);
+      return;
+    }
+
+    let isMounted = true;
+    (async () => {
+      const details = await fetchRestaurantDetails(String(restaurantId));
+      if (isMounted) setRestaurant(details);
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isFocused, cart]);
+
+  const getCartTotal = useCallback(() => {
     return (visibleCart || []).reduce((sum, item) => {
       const p = Number(item.discount_price ?? item.product_price ?? 0);
       return sum + p * (item.product_quantity || 0);
     }, 0);
-  };
+  }, [visibleCart]);
 
-  const getFinalTotal = () => {
-    const total = getCartTotal();
+  const isHomeDeliverySelected = deliveryMethod === "delivery" || deliveryMethod === "home";
+  const isDeliveryEnabled = isRestaurantDeliveryEnabled(restaurant);
+  const deliveryPricing = useMemo(() => {
+    if (deliveryMethod !== 'delivery' || !restaurant) {
+      return {
+        fee: 0,
+        distance: null,
+        isOutOfRadius: false,
+        isBelowMinOrder: false,
+        isFreeDelivery: false,
+        maxRadius: 0,
+        minOrder: 0,
+        freeAbove: 0,
+        baseFee: 0,
+      };
+    }
+    const baseFee = Number(
+      restaurant.base_delivery_fee ??
+      restaurant.delivery_charges ??
+      restaurant.delivery_fee ??
+      restaurant.base_fee ??
+      0
+    );
+    const baseDist = Number(
+      restaurant.base_delivery_distance ??
+      restaurant.base_distance ??
+      restaurant.delivery_distance ??
+      0
+    );
+    const extraFeePerMile = Number(
+      restaurant.extra_fee_per_mile ??
+      restaurant.per_mile_charge ??
+      restaurant.extra_charge_per_mile ??
+      restaurant.extra_fee ??
+      0
+    );
+    const maxRadius = Number(
+      restaurant.max_delivery_radius ??
+      restaurant.delivery_radius ??
+      restaurant.max_radius ??
+      0
+    );
+    const minOrder = Number(
+      restaurant.min_order_delivery ??
+      restaurant.min_order ??
+      restaurant.minimum_order ??
+      0
+    );
+    const freeAbove = Number(
+      restaurant.free_delivery_above ??
+      restaurant.free_delivery_amount ??
+      restaurant.free_delivery ??
+      0
+    );
+    const cartSubtotal = (visibleCart || []).reduce((sum, item) => {
+      const p = Number(item.discount_price ?? item.product_price ?? 0);
+      return sum + p * (item.product_quantity || 0);
+    }, 0);
+    let distance = null;
+    const custLat = Number(deliveryCoords?.lat ?? deliveryCoords?.latitude);
+    const custLng = Number(deliveryCoords?.lng ?? deliveryCoords?.longitude);
+    const restLat = Number(restaurant.latitude || restaurant.lat);
+    const restLng = Number(restaurant.longitude || restaurant.lng || restaurant.long);
+    if (!isNaN(custLat) && !isNaN(custLng) && !isNaN(restLat) && !isNaN(restLng) && custLat !== 0 && restLat !== 0) {
+      distance = calculateDistanceMiles(custLat, custLng, restLat, restLng);
+    }
+    const isBelowMinOrder = minOrder > 0 && cartSubtotal < minOrder;
+    const isOutOfRadius = maxRadius > 0 && distance !== null && distance > maxRadius;
+    if (freeAbove > 0 && cartSubtotal >= freeAbove) {
+      return {
+        fee: 0,
+        distance,
+        isOutOfRadius,
+        isBelowMinOrder,
+        isFreeDelivery: true,
+        maxRadius,
+        minOrder,
+        freeAbove,
+        baseFee,
+      };
+    }
+    let calculatedFee = baseFee;
+    if (distance !== null && baseDist > 0 && distance > baseDist && extraFeePerMile > 0) {
+      const extraMiles = distance - baseDist;
+      calculatedFee = baseFee + (extraMiles * extraFeePerMile);
+    } else if (distance !== null && baseDist === 0 && extraFeePerMile > 0) {
+      calculatedFee = baseFee + (distance * extraFeePerMile);
+    }
+    return {
+      fee: Math.round(calculatedFee * 100) / 100,
+      distance,
+      isOutOfRadius,
+      isBelowMinOrder,
+      isFreeDelivery: false,
+      maxRadius,
+      minOrder,
+      freeAbove,
+      baseFee,
+    };
+  }, [deliveryMethod, restaurant, deliveryCoords, visibleCart]);
+
+  const deliveryFee = useMemo(() => {
+    if (!isHomeDeliverySelected) return 0;
+    return Number(deliveryPricing?.fee || 0);
+  }, [deliveryPricing, isHomeDeliverySelected]);
+
+  useEffect(() => {
+    if (!restaurant) {
+      setDeliveryDistanceKm(0);
+      return;
+    }
+
+    const restaurantLat = Number(
+      restaurant.latitude ??
+      restaurant.lat ??
+      restaurant.location?.latitude ??
+      restaurant.location?.lat ??
+      0,
+    );
+    const restaurantLng = Number(
+      restaurant.longitude ??
+      restaurant.lng ??
+      restaurant.long ??
+      restaurant.location?.longitude ??
+      restaurant.location?.lng ??
+      0,
+    );
+    const deliveryLat = Number(deliveryCoords?.lat ?? deliveryCoords?.latitude ?? 0);
+    const deliveryLng = Number(deliveryCoords?.lng ?? deliveryCoords?.longitude ?? 0);
+
+    let distance = 0;
+
+    if (restaurantLat && restaurantLng && deliveryLat && deliveryLng) {
+      const miles = calculateDistanceMiles(restaurantLat, restaurantLng, deliveryLat, deliveryLng);
+      distance = miles !== null ? Number((miles * 1.60934).toFixed(1)) : 0;
+    } else {
+      distance = Number(
+        restaurant.distance_km ??
+        restaurant.delivery_distance_km ??
+        restaurant.delivery_distance ??
+        restaurant.base_delivery_distance ??
+        restaurant.base_distance ??
+        restaurant.current_distance_km ??
+        0,
+      );
+    }
+
+    setDeliveryDistanceKm(Number.isFinite(distance) ? distance : 0);
+  }, [restaurant, deliveryCoords]);
+
+  useEffect(() => {
+    if (!isDeliveryEnabled && isHomeDeliverySelected) {
+      setDeliveryMethod(null);
+      setDeliveryAddress("");
+      setHouseFlatNo("");
+      setStreetLandmark("");
+      setCity("");
+      setPostcode("");
+      setDeliveryInstructions("");
+      setDeliveryCoords(null);
+    }
+  }, [isDeliveryEnabled, isHomeDeliverySelected]);
+
+  const getFinalTotal = useCallback(() => {
+    const total = getCartTotal() + (isHomeDeliverySelected ? deliveryFee : 0);
     return Math.max(0, total - (useWallet ? walletUsed : 0) - (useLoyalty ? loyaltyUsed : 0));
-  };
+  }, [deliveryFee, getCartTotal, isHomeDeliverySelected, loyaltyUsed, useLoyalty, useWallet, walletUsed]);
 
-  const showPremiumAlert = (title, msg, type = "info") => {
+  const getFullDeliveryAddress = useCallback(() => {
+    const parts = [
+      houseFlatNo.trim(),
+      streetLandmark.trim(),
+      city.trim(),
+      postcode.trim().toUpperCase(),
+    ].filter(Boolean);
+    return parts.join(", ");
+  }, [houseFlatNo, streetLandmark, city, postcode]);
+
+  const saveDeliveryAddress = useCallback(() => {
+    const house = houseFlatNo.trim();
+    const post = postcode.trim();
+
+    if (!house || !post) {
+      Alert.alert("Address required", "Please enter your house/flat number and postcode before continuing.");
+      setDeliveryAddressSheetVisible(true);
+      return false;
+    }
+
+    const finalAddress = getFullDeliveryAddress();
+    setDeliveryAddress(finalAddress);
+    setDeliveryAddressSheetVisible(false);
+    return true;
+  }, [getFullDeliveryAddress, houseFlatNo, postcode]);
+
+  const handleUseCurrentLocation = useCallback(async () => {
+    if (locationLoading) return;
+
+    try {
+      setLocationLoading(true);
+      if (Platform.OS === 'ios') {
+        const auth = await Geolocation.requestAuthorization('whenInUse');
+        if (auth !== 'granted') {
+          Alert.alert('Location permission denied', 'Please allow location access to auto-fill the delivery address.');
+          setLocationLoading(false);
+          return;
+        }
+      }
+
+      Geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          const coords = { lat: latitude, lng: longitude, latitude, longitude };
+          setDeliveryCoords(coords);
+
+          try {
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`,
+              {
+                headers: {
+                  Accept: 'application/json',
+                  'User-Agent': 'CrispyDosaApp/1.0',
+                },
+              },
+            );
+            const data = await response.json();
+            const address = data?.address || {};
+            const road = address.road || address.pedestrian || address.neighbourhood || '';
+            const area = address.suburb || address.city_district || address.village || '';
+            const resolvedStreet = [road, area].filter(Boolean).join(', ');
+            const resolvedCity = address.city || address.town || address.village || address.county || '';
+            const resolvedPostcode = address.postcode || '';
+
+            if (resolvedStreet) setStreetLandmark(resolvedStreet);
+            if (resolvedCity) setCity(resolvedCity);
+            if (resolvedPostcode) setPostcode(resolvedPostcode);
+          } catch (error) {
+            console.log('Reverse geocode failed:', error);
+          } finally {
+            setLocationLoading(false);
+          }
+        },
+        (error) => {
+          console.log('Location fetch failed:', error);
+          Alert.alert('Location unavailable', 'Unable to fetch your current location right now.');
+          setLocationLoading(false);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 10000,
+        },
+      );
+    } catch (error) {
+      console.log('Location permission request failed:', error);
+      Alert.alert('Location unavailable', 'We could not access your location. Please enter the address manually.');
+      setLocationLoading(false);
+    }
+  }, [locationLoading]);
+
+  const showPremiumAlert = useCallback((title, msg, type = "info") => {
     setAlertTitle(title);
     setAlertMsg(msg);
     setAlertType(type);
@@ -174,15 +533,15 @@ export default function CheckoutScreen({ navigation }) {
       friction: 8,
       useNativeDriver: true,
     }).start();
-  };
+  }, [alertScale]);
 
-  const hidePremiumAlert = () => {
+  const hidePremiumAlert = useCallback(() => {
     Animated.timing(alertScale, {
       toValue: 0,
       duration: 200,
       useNativeDriver: true,
     }).start(() => setAlertVisible(false));
-  };
+  }, [alertScale]);
 
   const showToast = (msg) => {
     setToastMsg(msg);
@@ -249,7 +608,7 @@ export default function CheckoutScreen({ navigation }) {
     ]).start();
   };
 
-  const preparePayment = async () => {
+  const preparePayment = useCallback(async () => {
     if (!user || cart.length === 0) return;
     try {
       const amount = getFinalTotal();
@@ -275,7 +634,7 @@ export default function CheckoutScreen({ navigation }) {
     } catch (e) {
       console.log("Pre-payment init failed", e);
     }
-  };
+  }, [cart, getFinalTotal, initPaymentSheet, user]);
 
   useEffect(() => {
     if (isFocused && cart.length > 0) {
@@ -297,13 +656,13 @@ export default function CheckoutScreen({ navigation }) {
         showPremiumAlert("Payments Unavailable", "Invalid restaurant details.", "error");
       }
     }
-  }, [isFocused, cart]);
+  }, [isFocused, cart, preparePayment, showPremiumAlert]);
 
   useEffect(() => {
     if (isFocused && user && cart.length > 0 && stripeConfigured) {
       preparePayment();
     }
-  }, [isFocused, user, cart, useWallet, useLoyalty, stripeConfigured]);
+  }, [isFocused, user, cart, useWallet, useLoyalty, stripeConfigured, preparePayment]);
 
   const placeOrder = async () => {
     if (processingPayment) return;
@@ -349,38 +708,75 @@ export default function CheckoutScreen({ navigation }) {
         return;
       }
 
-      const restaurantId = cart[0]?.restaurant_id || cart[0]?.user_id;
+      const restaurantId = cart[0]?.restaurant_id || cart[0]?.user_id || "";
+      const fullDeliveryAddr = getFullDeliveryAddress();
+      const deliveryPricing = {
+        fee: Number(isHomeDeliverySelected ? deliveryFee : 0),
+        distance: Number(deliveryDistanceKm || 0),
+      };
 
-      const payload = {
-        user_id: String(restaurantId),
-        customer_id: String(user.customer_id ?? user.id),
-        customer_name: user.full_name || "",
-        customer_email: user.email || "",
-        customer_phone: user.mobile_number || "",
+      if (isHomeDeliverySelected) {
+        if (!houseFlatNo.trim() || !postcode.trim()) {
+          Alert.alert("Address required", "Please complete your delivery address before placing the order.");
+          setDeliveryAddressSheetVisible(true);
+          setProcessingPayment(false);
+          return;
+        }
+        setDeliveryAddress(fullDeliveryAddr);
+      }
+
+      const rawPayload = {
+        user_id: String(restaurantId || ""),
+        restaurant_id: String(restaurantId || ""),
+        restaurant_name: restaurant?.restaurant_name || restaurant?.name || cart[0]?.restaurant_name || "",
+
+        customer_id: String(user?.customer_id ?? user?.id ?? ""),
+        customer_name: user?.full_name || user?.name || "Customer",
+        customer_email: user?.email || "",
+        customer_phone: user?.mobile_number || user?.phone || "",
+        mobile_number: user?.mobile_number || user?.phone || "",
         payment_mode: 1,
-        payment_request_id: activeIntent.payment_intent_id,
+        payment_request_id: activeIntent?.payment_intent_id || "",
         instore: deliveryMethod === "instore" ? 1 : 0,
-        allergy_note: allergyNote,
-        car_color: kerbsideColor,
-        reg_number: kerbsideReg,
-        owner_name: kerbsideName,
-        mobile_number: user.mobile_number || "",
-        wallet_used: useWallet ? walletUsed : 0,
-        loyalty_used: useLoyalty ? loyaltyUsed : 0,
-        total_amount: getCartTotal(),
-        grand_total: getFinalTotal(),
+        order_type: deliveryMethod === "delivery" ? "delivery" : deliveryMethod === "instore" ? "takeaway" : "kerbside",
+        delivery_type: deliveryMethod === "delivery" ? "home" : deliveryMethod === "instore" ? "instore" : "kerbside",
+        ...(deliveryMethod === "delivery" && {
+          delivery_address: fullDeliveryAddr,
+          house_flat_no: houseFlatNo.trim(),
+          street_landmark: streetLandmark.trim(),
+          city: city.trim(),
+          postcode: postcode.trim().toUpperCase(),
+          pincode: postcode.trim().toUpperCase(),
+          delivery_instructions: deliveryInstructions.trim(),
+          delivery_coords: deliveryCoords || null,
+          delivery_status: "unassigned",
+          delivery_fee: Number(deliveryPricing?.fee || 0),
+          delivery_distance: deliveryPricing?.distance ? Number(deliveryPricing.distance) : null,
+        }),
+        allergy_note: allergyNote || "",
+        car_color: kerbsideColor || "",
+        reg_number: kerbsideReg || "",
+        owner_name: kerbsideName || "",
+        wallet_used: useWallet ? Number(walletUsed || 0) : 0,
+        loyalty_used: useLoyalty ? Number(loyaltyUsed || 0) : 0,
+        total_amount: Number(getCartTotal() || 0),
+        grand_total: Number(getFinalTotal() || 0),
         items: (visibleCart || []).map((i) => ({
-          product_id: i.product_id,
-          product_name: i.product_name,
-          price: i.product_price,
-          discount_amount: i.discount_price ? i.product_price - i.discount_price : 0,
+          product_id: String(i.product_id || ""),
+          product_name: i.product_name || "",
+          price: Number(i.product_price || 0),
+          discount_amount: i.discount_price ? Number(i.product_price) - Number(i.discount_price) : 0,
           vat: 0,
-          quantity: Number(i.product_quantity) || 0,
+          quantity: Number(i.product_quantity) || 1,
           textfield: i.textfield || i.special_instruction || "",
         })),
       };
 
-      const orderRes = await createOrder(payload);
+      const cleanPayload = Object.fromEntries(
+        Object.entries(rawPayload).filter(([_, value]) => value !== undefined)
+      );
+
+      const orderRes = await createOrder(cleanPayload);
       if (orderRes.status === 1) {
         // Show success
         triggerSuccessAnimation();
@@ -462,10 +858,26 @@ export default function CheckoutScreen({ navigation }) {
             <View style={styles.serviceCompositeCard}>
               <View style={styles.serviceRow}>
                 <View style={styles.serviceIconFrame}>
-                  <Ionicons name={deliveryMethod === 'Kerbside' ? "car-sport" : "walk"} size={26} color="#FF2B5C" />
+                  <Ionicons
+                    name={
+                      deliveryMethod === 'kerbside'
+                        ? 'car-sport'
+                        : isHomeDeliverySelected
+                          ? 'home'
+                          : 'walk'
+                    }
+                    size={26}
+                    color="#FF2B5C"
+                  />
                 </View>
                 <View style={{ flex: 1, marginLeft: 16 }}>
-                  <Text style={styles.serviceLabel}>{deliveryMethod === 'instore' ? "In-store Pickup" : "Kerbside Delivery"}</Text>
+                  <Text style={styles.serviceLabel}>
+                    {deliveryMethod === 'kerbside'
+                      ? 'Kerbside Delivery'
+                      : isHomeDeliverySelected
+                        ? 'Home Delivery'
+                        : 'In-store Pickup'}
+                  </Text>
                   <Text style={styles.serviceSub}>Estimated Prep: 20 - 25 Mins</Text>
                 </View>
                 <TouchableOpacity style={styles.changeBtn} onPress={() => { setDeliveryPopup(true); openSheet(); }}>
@@ -478,6 +890,16 @@ export default function CheckoutScreen({ navigation }) {
                   {kerbsideName ? <Text style={styles.kerbsideText}><Text style={{ fontWeight: '700', color: '#0F172A' }}>Car Name:</Text> {kerbsideName}</Text> : null}
                   {kerbsideColor ? <Text style={styles.kerbsideText}><Text style={{ fontWeight: '700', color: '#0F172A' }}>Color:</Text> {kerbsideColor}</Text> : null}
                   {kerbsideReg ? <Text style={styles.kerbsideText}><Text style={{ fontWeight: '700', color: '#0F172A' }}>Reg No:</Text> {kerbsideReg}</Text> : null}
+                </View>
+              )}
+
+              {isHomeDeliverySelected && (
+                <View style={[styles.kerbsideInfoDetail, { flexDirection: 'column', alignItems: 'flex-start', gap: 8 }]}> 
+                  <Text style={styles.kerbsideText}><Text style={{ fontWeight: '700', color: '#0F172A' }}>Delivery fee:</Text> £{deliveryFee.toFixed(2)}</Text>
+                  <Text style={styles.kerbsideText}><Text style={{ fontWeight: '700', color: '#0F172A' }}>Address:</Text> {deliveryAddress || 'Not added yet'}</Text>
+                  <TouchableOpacity style={styles.editAddressBtn} onPress={() => setDeliveryAddressSheetVisible(true)}>
+                    <Text style={styles.editAddressBtnText}>{deliveryAddress ? 'Change / Edit' : 'Add Address'}</Text>
+                  </TouchableOpacity>
                 </View>
               )}
 
@@ -587,6 +1009,13 @@ export default function CheckoutScreen({ navigation }) {
                   <Text style={styles.invoiceLabel}>Subtotal</Text>
                   <Text style={styles.invoiceValue}>£{getCartTotal().toFixed(2)}</Text>
                 </View>
+
+                {isHomeDeliverySelected && deliveryFee > 0 && (
+                  <View style={styles.invoiceRow}>
+                    <Text style={styles.invoiceLabel}>Delivery Fee</Text>
+                    <Text style={styles.invoiceValue}>£{deliveryFee.toFixed(2)}</Text>
+                  </View>
+                )}
 
                 {useWallet && walletUsed > 0 && (
                   <AnimatedView style={[styles.invoiceRow, { transform: [{ scale: walletScale }], opacity: walletScale }]}>
@@ -706,6 +1135,33 @@ export default function CheckoutScreen({ navigation }) {
                 />
               </TouchableOpacity>
 
+              {isDeliveryEnabled && (
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    setDeliveryMethod("delivery");
+                    setDeliveryAddressSheetVisible(true);
+                  }}
+                  style={[
+                    styles.optionCard,
+                    isHomeDeliverySelected && styles.optionCardSelected
+                  ]}
+                >
+                  <View style={[styles.optionIconContainer, isHomeDeliverySelected && { backgroundColor: '#FFF' }]}> 
+                    <Ionicons name="home" size={24} color={isHomeDeliverySelected ? "#16a34a" : "#64748B"} />
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 16 }}>
+                    <Text style={[styles.optionTitle, isHomeDeliverySelected && { color: '#065F46' }]}>Home Delivery</Text>
+                    <Text style={styles.optionSub}>We deliver to your door</Text>
+                  </View>
+                  <Ionicons
+                    name={isHomeDeliverySelected ? "checkmark-circle" : "ellipse-outline"}
+                    size={22}
+                    color={isHomeDeliverySelected ? "#16a34a" : "#CBD5E1"}
+                  />
+                </TouchableOpacity>
+              )}
+
               {deliveryMethod === 'kerbside' && (
                 <View style={styles.kerbsideFields}>
                   <TextInput style={styles.kInput} placeholder="Car Name / Make" value={kerbsideName} onChangeText={setKerbsideName} placeholderTextColor="#BCBCBC" />
@@ -715,9 +1171,15 @@ export default function CheckoutScreen({ navigation }) {
               )}
 
               <TouchableOpacity
-                style={[styles.sheetActionBtn, !deliveryMethod && { opacity: 0.5 }]}
-                disabled={!deliveryMethod}
+                style={[styles.sheetActionBtn, (!deliveryMethod || (isHomeDeliverySelected && !deliveryAddress.trim())) && { opacity: 0.5 }]}
+                disabled={!deliveryMethod || (isHomeDeliverySelected && !deliveryAddress.trim())}
                 onPress={() => {
+                  if (deliveryMethod === 'delivery' && postcode && (!deliveryCoords || !deliveryCoords.lat)) {
+                    geocodePostcode(postcode.trim());
+                  }
+                  if (isHomeDeliverySelected && !saveDeliveryAddress()) {
+                    return;
+                  }
                   closeSheet(() => {
                     setDeliveryPopup(false);
                     setTimeout(() => setAllergyPopup(true), 100);
@@ -732,6 +1194,81 @@ export default function CheckoutScreen({ navigation }) {
           </View>
         </KeyboardAvoidingView>
       </View>
+      )}
+
+      {/* Delivery address sheet */}
+      {deliveryAddressSheetVisible && (
+        <View style={[StyleSheet.absoluteFillObject, { zIndex: 110, elevation: 110 }]}> 
+          <KeyboardAvoidingView behavior={keyboardBehavior} style={{ flex: 1 }}>
+            <View style={styles.sheetOverlay}>
+              <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setDeliveryAddressSheetVisible(false)} />
+              <Animated.View style={[styles.sheetContent, { transform: [{ translateY: bottomSheetAnim }], paddingBottom: insets.bottom + 20 }]}>
+                <View style={styles.sheetHandle} />
+                <View style={styles.modalHeaderRow}>
+                  <TouchableOpacity onPress={() => setDeliveryAddressSheetVisible(false)} style={styles.modalBackBtn}>
+                    <Ionicons name="arrow-back" size={22} color="#1C1C1C" />
+                  </TouchableOpacity>
+                  <Text style={styles.sheetTitle}>Delivery Address</Text>
+                </View>
+
+                <TouchableOpacity style={styles.locationButton} onPress={handleUseCurrentLocation} disabled={locationLoading}>
+                  <Ionicons name={locationLoading ? 'refresh' : 'location'} size={18} color="#fff" />
+                  <Text style={styles.locationButtonText}>{locationLoading ? 'Fetching location...' : 'Use My Current Location'}</Text>
+                </TouchableOpacity>
+
+                <TextInput
+                  style={styles.kInput}
+                  placeholder="House / Flat / Block No."
+                  value={houseFlatNo}
+                  onChangeText={setHouseFlatNo}
+                  placeholderTextColor="#BCBCBC"
+                />
+                <TextInput
+                  style={styles.kInput}
+                  placeholder="Street / Area / Landmark"
+                  value={streetLandmark}
+                  onChangeText={setStreetLandmark}
+                  placeholderTextColor="#BCBCBC"
+                />
+                <TextInput
+                  style={styles.kInput}
+                  placeholder="City / Town"
+                  value={city}
+                  onChangeText={setCity}
+                  placeholderTextColor="#BCBCBC"
+                />
+                <TextInput
+                  style={styles.kInput}
+                  placeholder="Postcode / PIN"
+                  value={postcode}
+                  onChangeText={setPostcode}
+                  autoCapitalize="characters"
+                  placeholderTextColor="#BCBCBC"
+                />
+                <TextInput
+                  style={styles.kInput}
+                  placeholder="Delivery instructions (optional)"
+                  value={deliveryInstructions}
+                  onChangeText={setDeliveryInstructions}
+                  placeholderTextColor="#BCBCBC"
+                  multiline
+                />
+
+                <TouchableOpacity style={styles.sheetActionBtn} onPress={() => {
+                  const ok = saveDeliveryAddress();
+                  if (ok) {
+                    setDeliveryAddressSheetVisible(false);
+                    setDeliveryPopup(false);
+                  }
+                }}>
+                  <LinearGradient colors={["#10B981", "#059669"]} style={styles.sheetActionGrad}>
+                    <Text style={styles.sheetActionText}>Save & Confirm Address</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </Animated.View>
+            </View>
+          </KeyboardAvoidingView>
+        </View>
       )}
 
       {/* Allergy sheet */}
@@ -905,6 +1442,50 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
   },
   kerbsideText: { fontSize: 13 * scale, fontFamily: 'PoppinsMedium', color: '#475569', marginLeft: 8 },
+  homeDeliveryFields: { marginTop: 12 },
+  homeDeliveryLabel: { fontSize: 13 * scale, fontFamily: 'PoppinsBold', color: '#0F172A', marginBottom: 8 },
+  homeAddressInput: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    color: '#0F172A',
+    fontFamily: 'PoppinsMedium',
+    minHeight: 90,
+    textAlignVertical: 'top',
+  },
+  editAddressBtn: {
+    backgroundColor: '#EEF2FF',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+  },
+  editAddressBtnText: {
+    fontSize: 12 * scale,
+    fontFamily: 'PoppinsBold',
+    color: '#4338CA',
+  },
+  locationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2563EB',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  locationButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14 * scale,
+    fontFamily: 'PoppinsBold',
+    marginLeft: 8,
+  },
 
   allergyBar: {
     flexDirection: 'row',

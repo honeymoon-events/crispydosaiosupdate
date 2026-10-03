@@ -36,7 +36,7 @@
 	<key>NSCameraUsageDescription</key>
 	<string>This app uses the camera to upload food images.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>We need your location to show relevant stores and offers near you.</string>
+	<string>Crispy Dosa needs access to your location to find the nearest restaurants and deliver your food.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app allows users to select images from their photo library.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>

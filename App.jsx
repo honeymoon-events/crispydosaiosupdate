@@ -20,6 +20,8 @@ import Products from "./screens/Products";
 import Credits from "./screens/Credits";
 import CartSummary from "./screens/CartSummary.jsx";
 import CheckoutScreen from "./screens/CheckoutScreen.jsx";
+import DeliveryLoginScreen from "./screens/DeliveryLoginScreen.jsx";
+import DeliveryHomeScreen from "./screens/DeliveryHomeScreen.jsx";
 import Orders from "./screens/Orders.jsx";
 import Profile from "./screens/Profile.jsx";
 import PaymentHistory from "./screens/PaymentHistory.jsx";
@@ -84,6 +86,8 @@ export default function App() {
               <Stack.Screen name="Products" component={Products} />
               <Stack.Screen name="CartSummary" component={CartSummary} />
               <Stack.Screen name="CheckoutScreen" component={CheckoutScreen} />
+              <Stack.Screen name="DeliveryLogin" component={DeliveryLoginScreen} />
+              <Stack.Screen name="DeliveryHome" component={DeliveryHomeScreen} />
               <Stack.Screen name="Orders" component={Orders} />
               <Stack.Screen name="Login" component={LoginScreen} />
               <Stack.Screen name="Signup" component={SignupScreen} />
